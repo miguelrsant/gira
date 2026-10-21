@@ -83,7 +83,7 @@ export function roadNear(d, filter) {
   }
   if (!out) return null;
   const A = S[out.a], B = S[out.b];
-  _rn.road = rd; _rn.i = out.t < 0.5 ? out.a : out.b; _rn.t = out.t; _rn.dist = od; _rn.h = lerp(A.h, B.h, out.t);
+  _rn.road = rd; _rn.a = out.a; _rn.b = out.b; _rn.i = out.t < 0.5 ? out.a : out.b; _rn.t = out.t; _rn.dist = od; _rn.h = lerp(A.h, B.h, out.t);
   _rn.lat = ((x - A.x) * A.s.x + (y - A.y) * A.s.y + (z - A.z) * A.s.z);
   return _rn;
 }
@@ -140,9 +140,18 @@ export function trailDist(d) {
   THASH.near(x, y, z, (s) => { const dd = Math.hypot(s.x - x, s.y - y, s.z - z); if (dd < bd) { bd = dd; w = s.road.w; } });
   return bd - w * 0.5;
 }
-// altura onde os pés pisam: chão, calçada, deck ou rampa
+// altura da malha do chão: debaixo da rua afunda; no anel em volta da calçada fica abaixo do topo dela
+export function meshClamp(d, h) {
+  const rn = roadNear(d, (r) => r.kind !== 'trail' && !r.noFlat);
+  if (!rn) return h;
+  const edge = rn.road.hw + rn.road.sw;
+  if (rn.dist < edge + 0.1) return Math.min(h, rn.h - 0.1);
+  if (rn.dist < edge + 0.6) return Math.min(h, rn.h + rn.road.top + (rn.road.sw ? 0.08 : -0.04));
+  return h;
+}
+// altura onde os pés pisam: chão (como desenhado), calçada, deck ou rampa
 export function groundAt(d) {
-  let h = H(d);
+  let h = meshClamp(d, H(d));
   const rn = roadNear(d, (r) => r.kind !== 'trail');
   if (rn) {
     const rd = rn.road, s = rd.S[rn.i];
@@ -193,14 +202,7 @@ export function buildTerrain() {
     d.set(ico.pos[i * 3], ico.pos[i * 3 + 1], ico.pos[i * 3 + 2]);
     const h = H(d, info); ha[i] = h;
     // debaixo da rua e da calçada o chão afunda um pouco, para nunca furar o asfalto
-    let hm = h;
-    const rn = roadNear(d, (r) => r.kind !== 'trail' && !r.noFlat);
-    if (rn) {
-      const edge = rn.road.hw + rn.road.sw;
-      if (rn.dist < edge + 0.1) hm = Math.min(h, rn.h - 0.1);
-      // anel em volta da calçada: fica abaixo do topo dela, para nenhum triângulo do chão atravessar a borda
-      else if (rn.dist < edge + 0.6) hm = Math.min(h, rn.h + rn.road.top + (rn.road.sw ? 0.08 : -0.04));
-    }
+    const hm = meshClamp(d, h);
     pos[i * 3] = d.x * (R + hm); pos[i * 3 + 1] = d.y * (R + hm); pos[i * 3 + 2] = d.z * (R + hm);
     ga[i] = groundColor(d, h, info, c);
     cl[i * 3] = c.r * 255; cl[i * 3 + 1] = c.g * 255; cl[i * 3 + 2] = c.b * 255;

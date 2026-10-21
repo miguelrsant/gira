@@ -301,7 +301,7 @@ export function addLandmarks() {
     reserve(-16, 78, 4);
     BUILDS.push(() => {
       for (let r = 0; r < 3; r++) {
-        K.box(c, 0, -0.2, -1.6 + r * 1.6, 5.6, 0.5, 0.9, '#8e6c4b', { id: 3, pat: 3 });
+        K.box(c, 0, -0.8, -1.6 + r * 1.6, 5.6, 1.1, 0.9, '#8e6c4b', { id: 3, pat: 3 });
         addBoxCollider(subCtx(c, 0, 0, -1.6 + r * 1.6), 5.6, 0.9);
         for (let k = 0; k < 6; k++) K.blob(c, -2.3 + k * 0.92, 0.45, -1.6 + r * 1.6, 0.32, 0.26, 0.32, leafCF(LEAVES[(r + k) % 5]), { sway: 0.3, swayH: 1, det: 1 });
         for (let k = 0; k < 4; k++) K.sph(c, -2 + k * 1.3, 0.5, -1.45 + r * 1.6, 0.09, 0.09, 0.09, ['#c25959', '#de794e', '#f3c258'][r], { layer: 'fol', w: 6, h: 4 });

@@ -5,7 +5,7 @@ import { LOW, R } from '../core/config.js';
 import { C, dirOf, frameMatrix, headingVec, lerp, rand, Y } from '../core/math.js';
 import { chunkGeo, chunkOf } from './chunks.js';
 import { blobG, cylG, DOME, GEO, sphG, TM, torG } from './geo.js';
-import { H } from './terrain.js';
+import { groundAt, H } from './terrain.js';
 import { texPoster, texWin } from './textures.js';
 
 export function placeDir(d, fwd, o = {}) {
@@ -16,6 +16,13 @@ export function placeDir(d, fwd, o = {}) {
   return { W, d: up, fwd: fwd.clone().addScaledVector(up, -fwd.dot(up)).normalize(), h, ch: chunkOf(up), layer: o.layer || 'main' };
 }
 export function placeAt(lat, lon, heading, o = {}) { const d = dirOf(lat, lon); return placeDir(d, headingVec(d, heading), o); }
+// assenta uma peça (x, z) no chão de verdade: sobe ou desce o contexto até o pé encostar
+export function drop(c, x, z) {
+  const p = ctxPoint(c, x, 0, z), up = p.clone().normalize();
+  const dh = p.length() - R - groundAt(up);
+  if (dh > 0.6 || dh < -0.35 || Math.abs(dh) < 0.01) return c;
+  return subCtx(c, 0, -dh, 0);
+}
 // sub-contexto deslocado dentro de outro objeto
 export function subCtx(c, x, y, z, ry = 0) {
   const L = new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromAxisAngle(Y, ry), new THREE.Vector3(1, 1, 1));

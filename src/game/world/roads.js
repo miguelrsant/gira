@@ -6,6 +6,7 @@ import { chunkGeo, chunkOf } from './chunks.js';
 import { baseH, RHASH, roadNear, THASH } from './terrain.js';
 
 export const ROADS = [];
+const FILLET = 1.3;   // raio extra das esquinas
 const RC = {
   asphalt: col('#6d7b7f'), asphaltL: col('#78868a'), line: col('#e9ece3'), yellow: col('#efc25a'), curb: col('#dcdfd6'), side: col('#c9cdc2'),
   sideFace: col('#aeb4aa'), wood: col('#b48d63'), woodD: col('#8e6c4b'), stone: col('#c6c1b0')
@@ -118,7 +119,11 @@ export function settleRoads() {
         for (const lat of [rd.hw + 0.05, rd.hw + rd.sw * 0.5, rd.hw + rd.sw - 0.05]) {
           const q = tmpV.copy(s.d).addScaledVector(s.s, side * lat / R).normalize();
           const rn = roadNear(q, (r) => r !== rd && r.kind !== 'trail');
-          if (rn && rn.dist < rn.road.hw + 0.12) { if (side > 0) s.cutR = true; else s.cutL = true; break; }
+          if (!rn) continue;
+          const o = rn.road, beyond = !o.closed && ((rn.a === 0 && rn.t === 0) || (rn.b === o.S.length - 1 && rn.t === 1));
+          // perto de outra rua com calçada, abre espaço para a esquina arredondada
+          const lim = o.sw > 0 && !beyond ? o.hw + o.sw + FILLET : o.hw + 0.12;
+          if (rn.dist < lim) { if (side > 0) s.cutR = true; else s.cutL = true; break; }
         }
       }
       const rn = roadNear(s.d, (r) => r !== rd && r.kind !== 'trail');
@@ -199,17 +204,21 @@ export function buildRoads() {
     }
   }
 }
-// esquinas: onde uma rua termina em outra, preenche o canto entre o fim das duas calçadas
-function cornerQuad(g, P, c, up, o) {
-  const n = tmpV.subVectors(P[1], P[0]).cross(tmpV2.subVectors(P[3], P[0]));
-  if (n.dot(up) >= 0) g.quad(P[0], P[1], P[2], P[3], c, o); else g.quad(P[0], P[3], P[2], P[1], c, o);
+// esquinas: onde uma rua termina em outra, o meio-fio faz uma curva de uma calçada até a outra
+// ponto mais próximo entre as retas a + t·u e b + s·v (no plano tangente)
+function meet(a, u, b, v) {
+  const w = tmpV.subVectors(a, b), uu = u.dot(u), uv = u.dot(v), vv = v.dot(v), uw = u.dot(w), vw = v.dot(w), den = uu * vv - uv * uv;
+  if (Math.abs(den) < 1e-6) return a.clone().add(b).multiplyScalar(0.5);
+  const t = (uv * vw - vv * uw) / den, q = (uu * vw - uv * uw) / den;
+  return a.clone().addScaledVector(u, t).add(b.clone().addScaledVector(v, q)).multiplyScalar(0.5);
 }
-function sideFace(g, a, b, hTopA, hTopB, hBot, c, away) {
-  const p0 = a.clone().setLength(R + hBot), p1 = b.clone().setLength(R + hBot), p2 = b.clone().setLength(R + hTopB), p3 = a.clone().setLength(R + hTopA);
+const bez = (a, q, b, u, out) => out.copy(a).multiplyScalar((1 - u) * (1 - u)).addScaledVector(q, 2 * u * (1 - u)).addScaledVector(b, u * u);
+function quadUp(g, p0, p1, p2, p3, c, up, o) {
   const n = tmpV.subVectors(p1, p0).cross(tmpV2.subVectors(p3, p0));
-  if (n.dot(away) >= 0) g.quad(p0, p1, p2, p3, c, { id: 2 }); else g.quad(p0, p3, p2, p1, c, { id: 2 });
+  if (n.dot(up) >= 0) g.quad(p0, p1, p2, p3, c, o); else g.quad(p0, p3, p2, p1, c, o);
 }
 export function buildCorners() {
+  const NS = 8;
   for (const M of ROADS) {
     if (M.closed || !M.sw || M.kind === 'trail') continue;
     const S = M.S, N = S.length;
@@ -221,31 +230,48 @@ export function buildCorners() {
         const cutOf = (s) => (sg > 0 ? s.cutR : s.cutL);
         let k = i0; while (k >= 0 && k < N && cutOf(S[k])) k += dir;
         if (k === i0 || k < 0 || k >= N) continue;
-        const sk = S[k], ysM = sk.h + M.top + 0.13 + M.level * 0.004;
-        const A = roadPt(sk, sg * M.hw, 0, new THREE.Vector3()).normalize(), B = roadPt(sk, sg * (M.hw + M.sw), 0, new THREE.Vector3()).normalize();
-        // fim da calçada da rua principal do mesmo lado
+        const sk = S[k], up = sk.d;
+        const A = roadPt(sk, sg * M.hw, 0).normalize(), B = roadPt(sk, sg * (M.hw + M.sw), 0).normalize();
         const rnJ = roadNear(B, (r) => r === J); if (!rnJ) continue;
         const tau = rnJ.lat > 0 ? 1 : -1, j0 = rnJ.i;
         let best = -1, bd = 1e9;
-        for (let q = -14; q <= 14; q++) {
+        for (let q = -18; q <= 18; q++) {
           const j = J.closed ? (j0 + q + JN) % JN : j0 + q; if (j < 0 || j >= JN) continue;
           const sj = JS[j]; if (tau > 0 ? sj.cutR : sj.cutL) continue;
-          const mid = roadPt(sj, tau * (J.hw + J.sw * 0.5), 0, new THREE.Vector3()).normalize();
-          // tem que ficar do mesmo lado da rua secundária que a esquina
-          const rel = tmpV3.copy(mid).sub(sk.d).dot(sk.s) * sg; if (rel <= 0) continue;
+          const mid = roadPt(sj, tau * (J.hw + J.sw * 0.5), 0).normalize();
+          if (tmpV3.copy(mid).sub(sk.d).dot(sk.s) * sg <= 0) continue;
           const dd = mid.distanceTo(B); if (dd < bd) { bd = dd; best = j; }
         }
-        if (best < 0 || bd * R > 6) continue;
-        const sj = JS[best], ysJ = sj.h + J.top + 0.13 + J.level * 0.004;
-        const C2 = roadPt(sj, tau * (J.hw + J.sw), 0, new THREE.Vector3()).normalize(), D = roadPt(sj, tau * J.hw, 0, new THREE.Vector3()).normalize();
-        const y = Math.max(ysM, ysJ) - 0.002, g = chunkGeo(chunkOf(sk.d), 'road');
-        const P = [A, B, C2, D].map((d) => d.clone().multiplyScalar(R + y));
-        cornerQuad(g, P, RC.side, sk.d, { pat: 6, id: 2 });
-        // meio-fio virado para o asfalto e borda de fora
-        const ctr = tmpV3.addVectors(A, D).multiplyScalar(0.5);
-        const asphaltDir = sk.d.clone().sub(ctr).add(sj.d.clone().sub(ctr));
-        sideFace(g, A, D, y, y, sk.h + M.top, RC.curb, asphaltDir);
-        sideFace(g, B, C2, y, y, sk.h - 0.3, RC.sideFace, asphaltDir.clone().negate());
+        if (best < 0 || bd * R > 7) continue;
+        const sj = JS[best];
+        const D = roadPt(sj, tau * J.hw, 0).normalize(), C2 = roadPt(sj, tau * (J.hw + J.sw), 0).normalize();
+        // direções das bordas, apontando para a esquina
+        const uM = sk.t.clone().multiplyScalar(-dir);
+        const vJ = sj.t.clone(); if (vJ.dot(tmpV3.subVectors(A, D)) < 0) vJ.negate();
+        const Qi = meet(A, uM, D, vJ).normalize(), Qo = meet(B, uM, C2, vJ).normalize();
+        const yT = Math.max(sk.h + M.top + 0.13 + M.level * 0.004, sj.h + J.top + 0.13 + J.level * 0.004) - 0.002;
+        const yR = Math.max(sk.h + M.top, sj.h + J.top) + 0.004, yB = Math.min(sk.h, sj.h) - 0.3;
+        const g = chunkGeo(chunkOf(sk.d), 'road');
+        const inner = [], outer = [];
+        for (let u = 0; u <= NS; u++) { inner.push(bez(A, Qi, D, u / NS, new THREE.Vector3()).normalize()); outer.push(bez(B, Qo, C2, u / NS, new THREE.Vector3()).normalize()); }
+        const at = (d, y) => d.clone().multiplyScalar(R + y);
+        const qR = at(Qi, yR);
+        for (let u = 0; u < NS; u++) {
+          const i0p = inner[u], i1p = inner[u + 1], o0 = outer[u], o1 = outer[u + 1];
+          // calçada
+          quadUp(g, at(i0p, yT), at(o0, yT), at(o1, yT), at(i1p, yT), RC.side, up, { pat: 6, id: 2 });
+          // asfalto no canto de dentro da curva
+          quadUp(g, qR, at(i0p, yR), at(i1p, yR), qR, RC.asphalt, up, { id: 1 });
+          // meio-fio (para o lado do asfalto) e borda de fora
+          const toQ = tmpV3.subVectors(Qi, i0p);
+          const a0 = at(i0p, yR - 0.01), a1 = at(i1p, yR - 0.01), a2 = at(i1p, yT), a3 = at(i0p, yT);
+          const nC = new THREE.Vector3().subVectors(a1, a0).cross(new THREE.Vector3().subVectors(a3, a0));
+          if (nC.dot(toQ) >= 0) g.quad(a0, a1, a2, a3, RC.curb, { id: 2 }); else g.quad(a0, a3, a2, a1, RC.curb, { id: 2 });
+          const awayO = tmpV3.subVectors(o0, Qi);
+          const b0 = at(o0, yB), b1 = at(o1, yB), b2 = at(o1, yT), b3 = at(o0, yT);
+          const nO = new THREE.Vector3().subVectors(b1, b0).cross(new THREE.Vector3().subVectors(b3, b0));
+          if (nO.dot(awayO) >= 0) g.quad(b0, b1, b2, b3, RC.sideFace, { id: 2 }); else g.quad(b0, b3, b2, b1, RC.sideFace, { id: 2 });
+        }
       }
     }
   }

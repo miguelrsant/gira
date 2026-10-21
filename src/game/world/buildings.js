@@ -195,7 +195,7 @@ export function bMansion(c) {
 export function bKiosk(c, s) {
   // banca de jornal
   const w = 2.6, d = 1.8;
-  K.box(c, 0, 0, 0, w, 2.3, d, '#5a8f73', { id: 4, pat: 4 });
+  K.box(c, 0, -0.6, 0, w, 2.9, d, '#5a8f73', { id: 4, pat: 4 });
   K.box(c, 0, 2.3, 0, w + 0.6, 0.16, d + 0.8, '#4b7a62', { id: 5 });
   K.box(c, 0, 0.8, d / 2 + 0.3, w - 0.2, 0.12, 0.6, '#e9e6dc', { id: 5 });
   for (let i = 0; i < 4; i++) K.pl(c, -w / 2 + 0.4 + i * 0.6, 1.5, d / 2 + 0.012, 0.5, 0.38, texNews(), { id: 6 });
@@ -277,7 +277,7 @@ export function bFountain(c) {
   K.cyl(c, 0, 1.6, 0, 0.12, 0.5, '#c9c3b1', { n: 8, id: 5 });
 }
 export function bPodium(c) {
-  K.box(c, 0, 0, 0, 1.5, 0.35, 1.3, '#c25959', { id: 5 });
+  K.box(c, 0, -0.6, 0, 1.5, 0.95, 1.3, '#c25959', { id: 5 });
   K.box(c, 0, 0.35, 0.35, 0.8, 0.85, 0.45, '#a94e4e', { id: 5 });
   K.pl(c, 0, 0.85, 0.58, 0.62, 0.62, texLogo(), { id: 6 });
 }

@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { C, pickR, rand, rr } from '../core/math.js';
 import { TM } from './geo.js';
-import { G, K, subCtx } from './kit.js';
+import { drop, G, K, subCtx } from './kit.js';
 import { vnoise3 } from './noise.js';
 import { solid } from './places.js';
 
@@ -21,6 +21,7 @@ export function leafCF(set) {
 export function tree(c, x, z, s = 1, o = {}) {
   const set = o.leaf || pickR(LEAVES), th = 1.5 * s, top = th + 1.9 * s;
   const lean = rr(-0.08, 0.08);
+  c = drop(c, x, z);
   solid(c, x, z, 0.3 * s);
   K.cyl(c, x, 0, z, 0.15 * s, th + 0.5 * s, '#7a6a58', { n: 7, top: 0.55, layer: 'fol', id: 7, sway: 0.25, swayH: top, rz: lean });
   if (rand() < 0.6) K.cyl(c, x + 0.25 * s, th * 0.75, z, 0.06 * s, 0.75 * s, '#7a6a58', { n: 5, top: 0.5, layer: 'fol', id: 7, rz: -0.8, sway: 0.4, swayH: top });
@@ -34,6 +35,7 @@ export function tree(c, x, z, s = 1, o = {}) {
 }
 export function pine(c, x, z, s = 1) {
   const set = LEAVES[4];
+  c = drop(c, x, z);
   solid(c, x, z, 0.3 * s);
   K.cyl(c, x, 0, z, 0.12 * s, 1.2 * s, '#6f5f4e', { n: 6, layer: 'fol', id: 7, sway: 0.1, swayH: 4 * s });
   for (let i = 0; i < 3; i++) K.cyl(c, x, (0.8 + i * 0.85) * s, z, (1.1 - i * 0.28) * s, 1.5 * s, null, { n: 8, top: 0.02, layer: 'fol', id: 7, cf: (px, py, pz, nx, ny) => (ny > 0.55 ? set[0] : set[1]), sway: 1, swayH: 4 * s });
@@ -70,6 +72,7 @@ const FROND = (() => {
 })();
 export function palm(c, x, z, s = 1) {
   const segs = 7, bend = rr(0.15, 0.32), dir = rand() * Math.PI * 2;
+  c = drop(c, x, z);
   solid(c, x, z, 0.25 * s);
   let px = x, py = 0, pz = z;
   for (let i = 0; i < segs; i++) {

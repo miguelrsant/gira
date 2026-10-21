@@ -7,7 +7,7 @@ import { addBoxCollider, BUILDS, COLLIDERS, SPOTS } from '../world/places.js';
 
 export function storyProps() {
   // caixote do coach
-  BUILDS.push(() => { const c = SPOTS.academia; K.box(c, -1.3, 0, 3.15, 0.9, 0.5, 0.8, '#b48d63', { id: 3, pat: 3 }); addBoxCollider(subCtx(c, -1.3, 0, 3.15), 0.9, 0.8); });
+  BUILDS.push(() => { const c = SPOTS.academia; K.box(c, -1.3, -0.6, 3.15, 0.9, 1.1, 0.8, '#b48d63', { id: 3, pat: 3 }); addBoxCollider(subCtx(c, -1.3, 0, 3.15), 0.9, 0.8); });
   // balde e caixa de isopor do Tonho, na ponta do píer
   BUILDS.push(() => {
     const S = PIER.S, s = S[S.length - 3];
