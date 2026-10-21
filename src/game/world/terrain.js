@@ -110,7 +110,11 @@ export function H(d, info) {
   const x = d.x * R, y = d.y * R, z = d.z * R;
   let bz = null, bw = 0;
   ZHASH.near(x, y, z, (zn) => { const w = zoneWeight(zn, x, y, z); if (w > bw) { bw = w; bz = zn; } });
-  if (bz) { h = lerp(h, bz.h, bw); lw = bw; lk = bz.kind; }
+  // o lote é plano de verdade (plano tangente no centro), não uma casca curva: assim as peças retas assentam no chão
+  if (bz) {
+    const n = bz.pn, zh = n ? (R + bz.h) / Math.max(0.5, d.x * n.x + d.y * n.y + d.z * n.z) - R : bz.h;
+    h = lerp(h, zh, bw); lw = bw; lk = bz.kind;
+  }
   if (info) { info.road = rw; info.lot = lw; info.kind = lk; }
   return h;
 }
@@ -120,7 +124,9 @@ export function addZone(d, fwd, hw, hd, o = {}) {
   const f = fwd.clone().addScaledVector(up, -fwd.dot(up)).normalize();
   const r = new THREE.Vector3().crossVectors(up, f).normalize();
   const h = o.h !== undefined ? o.h : H(up);
-  const zn = { x: up.x * R, y: up.y * R, z: up.z * R, d: up, r, f, hw, hd, h, m: o.m ?? 1.6, kind: o.kind || 'paved', round: !!o.round };
+  // pn: normal do plano do lote (o "cima" de quem constrói nele); plane: false = casca curva
+  const pn = o.plane === false ? null : (o.pn || up).clone().normalize();
+  const zn = { x: up.x * R, y: up.y * R, z: up.z * R, d: up, r, f, hw, hd, h, pn, m: o.m ?? 1.6, kind: o.kind || 'paved', round: !!o.round };
   ZONES.push(zn);
   ZHASH.insert(zn.x, zn.y, zn.z, Math.hypot(hw, hd) + zn.m, zn);
   return zn;
@@ -184,7 +190,11 @@ export function buildTerrain() {
   for (let i = 0; i < n; i++) {
     d.set(ico.pos[i * 3], ico.pos[i * 3 + 1], ico.pos[i * 3 + 2]);
     const h = H(d, info); ha[i] = h;
-    pos[i * 3] = d.x * (R + h); pos[i * 3 + 1] = d.y * (R + h); pos[i * 3 + 2] = d.z * (R + h);
+    // debaixo da rua e da calçada o chão afunda um pouco, para nunca furar o asfalto
+    let hm = h;
+    const rn = roadNear(d, (r) => r.kind !== 'trail' && !r.noFlat);
+    if (rn && rn.dist < rn.road.hw + rn.road.sw + 0.1) hm = Math.min(h, rn.h - 0.1);
+    pos[i * 3] = d.x * (R + hm); pos[i * 3 + 1] = d.y * (R + hm); pos[i * 3 + 2] = d.z * (R + hm);
     ga[i] = groundColor(d, h, info, c);
     cl[i * 3] = c.r * 255; cl[i * 3 + 1] = c.g * 255; cl[i * 3 + 2] = c.b * 255;
   }

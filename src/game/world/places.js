@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { R } from '../core/config.js';
 import { arcDist, dirOf, tmpV } from '../core/math.js';
-import { ctxDir, ctxPoint, placeDir } from './kit.js';
+import { ctxDir, ctxPoint, placeDir, subCtx } from './kit.js';
 import { addZone, H } from './terrain.js';
 
 export const FOOT = [];          // pegadas ocupadas (para o loteamento automático não sobrepor)
@@ -41,11 +41,17 @@ export function addBoxCollider(c, w, d, cx = 0, cz = 0, tall = false) {
 }
 export function addCircle(d, r) { COLLIDERS.push({ d: d.clone().normalize(), r }); }
 export function addCircleLocal(c, x, z, r) { addCircle(ctxDir(c, x, z), r); }
+// colisor de móvel: só vale se a peça está no chão (vaso em cima de balcão ou telhado não bloqueia a rua)
+export function solid(c, x, z, r, w, d, ry = 0) {
+  const p = ctxPoint(c, x, 0, z), up = p.clone().normalize();
+  if (p.length() - R - H(up) > 0.6) return;
+  if (w) addBoxCollider(subCtx(c, x, 0, z, ry), w, d); else addCircle(up, r);
+}
 // lote: registra zona aplainada + pegada + colisor, e agenda a construção
 export function lot(c, w, d, o = {}) {
   const F = footOf(c, w + (o.padW || 0), d + (o.padD || 0), o.cx || 0, o.cz || 0);
   FOOT.push(F);
-  if (o.zone !== false) addZone(ctxDir(c, o.cx || 0, o.cz || 0), c.fwd, (w + (o.padW || 0)) / 2 + 0.4, (d + (o.padD || 0)) / 2 + 0.4, { h: c.h, kind: o.kind || 'paved', m: o.m ?? 1.8 });
+  if (o.zone !== false) addZone(ctxDir(c, o.cx || 0, o.cz || 0), c.fwd, (w + (o.padW || 0)) / 2 + 0.4, (d + (o.padD || 0)) / 2 + 0.4, { h: c.h, pn: c.d, kind: o.kind || 'paved', m: o.m ?? 1.8 });
   if (o.collide !== false) addBoxCollider(c, o.colW || w, o.colD || d, o.ccx || 0, o.ccz || 0, true);
 }
 // contexto ao longo de uma rua, de frente para ela

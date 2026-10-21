@@ -67,7 +67,7 @@ export function addLandmarks() {
     const tc = subCtx(c, 0, 0, -1.7);
     BUILDS.push(() => {
       bTower(tc, {});
-      const pc = subCtx(c, -1.6, 0, 3.2); bPodium(pc); addBoxCollider(pc, 1.5, 1.3);
+      const pc = subCtx(c, -1.6, 0, 3.2); bPodium(pc); addBoxCollider(pc, 1.6, 1.4);
       // relógio de ponto
       K.box(c, 2.3, 0, 3.6, 0.5, 1.2, 0.4, '#4b5658', { id: 5, layer: 'small' });
       K.pl(c, 2.3, 1.0, 3.81, 0.36, 0.36, texClock(), { id: 6 });
@@ -106,7 +106,7 @@ export function addLandmarks() {
   // banca da Neide
   {
     const i = nearestSample(MAIN, 5, 38), c = besideRoad(MAIN, i, 1, 1.9, -1.3);
-    BUILDS.push(() => bKiosk(c, {})); addBoxCollider(c, 2.6, 1.8, 0, 0, true); FOOT.push(footOf(c, 2.8, 2.8));
+    BUILDS.push(() => bKiosk(c, {})); addBoxCollider(c, 2.6, 2.4, 0, 0.3, true); FOOT.push(footOf(c, 2.8, 2.8));
     SPOTS.neide = { c, x: 0.4, z: -0.2, y: 0 };
     interact(c, -0.8, 1.2, 1.4, { name: 'JORNAL', news: true, lines: [] });
   }

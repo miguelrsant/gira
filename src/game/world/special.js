@@ -7,7 +7,7 @@ import { MAT } from './chunks.js';
 import { SM } from './furniture.js';
 import { Geo, GEO, HULL, TM } from './geo.js';
 import { addRailing, ctxPoint, G, K, placeDir } from './kit.js';
-import { DYN } from './places.js';
+import { DYN, solid } from './places.js';
 import { PLATFORMS, waterMat } from './terrain.js';
 import { texDoor, texSign } from './textures.js';
 
@@ -43,8 +43,11 @@ export function poolAt(c, w, d) {
   PLATFORMS.push({ test: () => null });
 }
 export function loungeChair(c) {
+  solid(c, 0, 0.1, 0, 0.75, 1.6);
+  // assento (z de -0.3 a 0.9) e encosto subindo para trás a partir da ponta do assento
   K.box(c, 0, 0.22, 0.3, 0.7, 0.08, 1.2, '#f4f4ef', { id: 3 });
-  K.box(c, 0, 0.3, -0.55, 0.7, 0.08, 0.8, '#f4f4ef', { id: 3, rx: -0.9 });
+  K.boxc(c, 0, 0.3 + Math.sin(0.9) * 0.4, -0.3 - Math.cos(0.9) * 0.4, 0.7, 0.08, 0.8, '#f4f4ef', { id: 3, rx: 0.9 });
+  K.boxc(c, 0, 0.36 + Math.sin(0.9) * 0.38, -0.27 - Math.cos(0.9) * 0.38, 0.62, 0.05, 0.74, '#66bde6', { id: 7, rx: 0.9 });
   for (const [x, z] of [[-0.3, 0.8], [0.3, 0.8], [-0.3, -0.2], [0.3, -0.2]]) K.box(c, x, 0, z, 0.05, 0.24, 0.05, '#c9cdc2', SM);
   K.box(c, 0, 0.3, 0.3, 0.62, 0.05, 1.1, '#66bde6', { id: 7 });
 }

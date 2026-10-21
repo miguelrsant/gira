@@ -20,7 +20,7 @@ export function defineWorld() {
   town(14, 20, 24); town(25, 90, 15); town(-28, 152, 13); town(-27, 232, 16); town(-25, 100, 14);
   town(86, 70, 10); town(-12, 28, 8); town(-74, 236, 5); town(14, 300, 8); town(-16, 78, 6);
   // zona plana do topo do morro
-  addZone(dirOf(90, 0), new THREE.Vector3(1, 0, 0), 9.5, 9.5, { h: 6.2, round: true, m: 3.5, kind: 'grass' });
+  addZone(dirOf(90, 0), new THREE.Vector3(1, 0, 0), 9.5, 9.5, { h: 6.2, round: true, m: 3.5, kind: 'grass', plane: false });
 
   MAIN = defRoad({ name: 'Avenida da Esteira', closed: true, w: 3.2, sw: 1.5, marks: 'dash', level: 0, pts: [
     [4, -12], [4, 6], [4.5, 24], [5, 42], [7, 58], [9, 74], [8, 90], [4, 106], [-3, 120], [-10, 134], [-16, 149], [-20, 165],
