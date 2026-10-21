@@ -34,7 +34,7 @@ import { refreshTasks, updateHud } from './play/hud.js';
 import { initInput } from './play/input.js';
 import { updateOverlays } from './play/overlays.js';
 import { initPages, PAGEOBJ, updatePages } from './play/pages.js';
-import { initPlayer, placePlayer, player, SKYF, stepPlayer } from './play/player.js';
+import { heroGesture, initPlayer, placePlayer, player, setHeroMood, SKYF, stepPlayer } from './play/player.js';
 import { render } from './play/render.js';
 import { state } from './play/state.js';
 import { buildTitle, startTitle, TITLE, updateTitle } from './play/title.js';
@@ -121,4 +121,6 @@ window.__gira = {
   walk(x) { state.walked = x; },
   strike() { startStrike(); },
   talk(id) { startTalk(actor(id)); },
+  mood(m) { setHeroMood(m); },
+  gesture(g) { heroGesture(g); },
 };

@@ -19,6 +19,8 @@ export const player = {
   camFwd: V3(), lock: false, pos: V3(), head: V3(), actT: 0, lastStep: 0,
   // referência dos controles: presa ao mundo enquanto a mesma direção continua apertada
   ctrlFwd: V3(), ctrlOn: false, ctrlA: 0,
+  // humor do dia (a história escolhe com setHeroMood) e gesto de uma vez só (heroGesture)
+  mood: null, gesture: null, gestureT: 0,
 };
 // quadro do céu, transportado junto com a Duda (nuvens passam por cima quando ela anda)
 export const SKYF = { x: V3(), z: V3(), shift: new THREE.Vector3() };
@@ -81,7 +83,8 @@ export function stepPlayer(dt) {
     const f = player.fwd, ang = Math.atan2(_m.b.crossVectors(f, md).dot(up), f.dot(md));
     f.applyAxisAngle(up, ang * (1 - Math.exp(-dt * 13))).addScaledVector(up, -f.dot(up)).normalize();
   }
-  const target = moving ? (run ? RUN : WALK) * Math.min(1, mag * 1.25) : 0;
+  const ms = player.mood ? MOODS[player.mood].speed : 1;
+  const target = moving ? (run ? RUN : WALK) * ms * Math.min(1, mag * 1.25) : 0;
   player.vel.lerp(_m.b.copy(md).multiplyScalar(target), 1 - Math.exp(-dt * (target > player.speed ? 7 : 11)));
   player.vel.addScaledVector(up, -player.vel.dot(up));
   const sp = player.vel.length();
@@ -123,8 +126,14 @@ export function stepPlayer(dt) {
   // animação
   st.speed = player.aspeed;
   st.air = lerp(st.air, player.air ? 1 : 0, 1 - Math.exp(-dt * 12)); st.vy = player.vy;
-  if (!state.sunday && !state.strike) st.tired = 0.12 + 0.42 * clamp(state.walked / LAP, 0, 1) + (state.day === 7 ? 0.15 : 0);
+  if (player.mood) st.tired = lerp(st.tired, MOODS[player.mood].tired, 1 - Math.exp(-dt * 2));
+  else if (!state.sunday && !state.strike) st.tired = 0.12 + 0.42 * clamp(state.walked / LAP, 0, 1) + (state.day === 7 ? 0.15 : 0);
   else st.tired = lerp(st.tired, 0, dt);
+  if (player.gesture) {
+    if (player.gestureT === 0) { st.act = GESTURE_ACT[player.gesture]; player.actT = 1.8; }
+    player.gestureT += dt;
+    if (player.gestureT > 1.8) player.gesture = null;
+  }
   if (player.actT > 0) { player.actT -= dt; if (player.actT <= 0 && !state.strike) st.act = null; }
   poseChar(player.ch, dt);
   // passos
@@ -138,6 +147,23 @@ export function stepPlayer(dt) {
 export function jump() {
   if (state.mode === 'play' && !state.dialog && !player.air && player.vy <= 0 && !player.lock) { player.vy = 5.6; sfx.jump(); }
 }
+
+// ---------------- humor da Duda ----------------
+// a história decide o humor de cada dia; aqui fica o visual (rosto, postura, ritmo e velocidade do andar)
+export const MOODS = {
+  irritada: { speed: 1, tired: 0.25 },     // segunda: com raiva e cansada
+  entediada: { speed: 0.9, tired: 0.2 },   // terça: tranquila, mas o tempo não passa
+  tranquila: { speed: 1, tired: 0.05 },    // quarta: de boa
+  cansada: { speed: 0.85, tired: 0.45 },   // quinta: começa a cansar
+  exausta: { speed: 0.72, tired: 0.75 },   // sexta e sábado: dor de cabeça, bem mais devagar
+  feliz: { speed: 1.05, tired: 0 },        // domingo e greve
+};
+// gestos de uma vez só (por enquanto reaproveitam as poses que já existem)
+const GESTURE_ACT = { suspiro: 'sleepy', bocejo: 'sleepy', 'dor-de-cabeca': 'sweat', bufar: 'angry', espreguicar: 'cheer', 'olhar-relogio': 'think' };
+export const GESTURES = Object.keys(GESTURE_ACT);
+export function setHeroMood(name) { player.mood = MOODS[name] ? name : 'tranquila'; }
+export const heroMood = () => player.mood;
+export function heroGesture(name) { if (GESTURE_ACT[name]) { player.gesture = name; player.gestureT = 0; } }
 
 // ---------------- guarda-roupa (o painel é o <Wardrobe>, em src/ui) ----------------
 export function changeOutfit(k, d) {
