@@ -2,6 +2,9 @@
 import { LAP } from '../core/config.js';
 import { clamp } from '../core/math.js';
 
+// hora extra: quanto se anda (em distância do mundo, não em voltas) depois da volta do dia, até o dia acabar
+// de qualquer jeito. As missões cruzam o planeta, então isso não depende do LAP.
+export const EXTRA_DIST = 360;
 export const state = {
   mode: 'loading',          // loading | title | intro | play | cutscene
   day: 1, week: 1, walked: 0, strike: false, sunday: false, declined: false,

@@ -16,7 +16,7 @@ import { hideCard, hintOnce, refreshTasks, setCardText, setHint, showCard, toast
 import { dayTitle, mainPending, missionTalk, runMissionTalk } from './missions.js';
 import { respiroTalk, wakeLine } from './mood.js';
 import { player } from './player.js';
-import { state } from './state.js';
+import { EXTRA_DIST, state } from './state.js';
 
 export async function startTalk(a) {
   if (state.dialog || state.mode !== 'play' || a.talking) return;
@@ -145,7 +145,6 @@ function sundayPoses() {
   }
 }
 let playT = 0, distTick = 0;
-export const EXTRA = 1.4;   // até onde a hora extra vai (em voltas)
 export function updateGame(dt) {
   if (state.mode !== 'play') { target = null; return; }
   playT += dt;
@@ -153,7 +152,7 @@ export function updateGame(dt) {
   if (target && target.kind === 'npc') hintOnce('talk', IS_TOUCH ? 'Toque no balão (ou no aviso embaixo) para conversar.' : 'Aperte E para conversar.', 4500);
   // a volta acabou mas a história do dia não: hora extra (até um limite, que ninguém é de ferro)
   if (!state.sunday && !state.strike && state.walked >= LAP && !state.dialog) {
-    if (!mainPending() || state.walked >= LAP * EXTRA) endDay();
+    if (!mainPending() || state.walked >= LAP + EXTRA_DIST) endDay();
     else hintOnce('extra' + state.week + state.day, 'A volta do dia acabou, mas a história de hoje não. No planeta isso tem nome: hora extra.', 6000);
   }
   distTick -= dt; if (distTick < 0) { distTick = 0.3; updateDistrict(); }

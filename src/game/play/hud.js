@@ -6,7 +6,7 @@ import { clamp } from '../core/math.js';
 import { DISTRICTS } from '../world/places.js';
 import { NPCS } from '../story/npcs.js';
 import { sfx } from './audio.js';
-import { dayP, state } from './state.js';
+import { dayP, EXTRA_DIST, state } from './state.js';
 
 
 // ---------------- cartões de tela cheia (fim do dia, fim da semana) ----------------
@@ -27,7 +27,7 @@ export function updateHud() {
   const day = {
     fill: (p * 100).toFixed(1) + '%',
     pct: state.sunday ? 'folga' : extra ? 'hora extra' : Math.floor(p * 100) + '%',
-    clock: state.sunday ? fmtClock(dayP()) : fmtClock(state.walked / LAP),
+    clock: state.sunday ? fmtClock(dayP()) : fmtClock(extra ? 1 + 0.25 * clamp((state.walked - LAP) / EXTRA_DIST, 0, 1) : p),   // hora extra: até 22:00
     name: state.sunday ? 'DOMINGO' : DAYS[state.day - 1],
     week: state.sunday ? 'FOLGA DE VERDADE' : `DIA ${state.day} DE 7 · SEMANA ${state.week}`,
     animo: Math.round(state.animo * 100) + '%', mood: state.mood, low: state.animo < 0.25,
@@ -78,4 +78,4 @@ export function toast(t, s, ms = 3200) {
 export function togglePanel(id) { setUI({ panel: id && getUI().panel !== id ? id : null }); sfx.paper(); }
 export function closePanels() { if (getUI().panel) setUI({ panel: null }); }
 // atalho de teste do menu
-export function skipDay() { if (state.mode === 'play' && !state.sunday && !state.strike) { state.walked = LAP * 1.4; togglePanel(null); } }
+export function skipDay() { if (state.mode === 'play' && !state.sunday && !state.strike) { state.walked = LAP + EXTRA_DIST; togglePanel(null); } }
