@@ -46,7 +46,8 @@ export function spawnActors() {
       timer: rand() * 4, actT: 0, baseAct: ch.st.act, vis: true, waved: '', acc: 0, wander: null, stuck: 0, mega: false,
     };
     if (n.walker) {
-      a.s = n.walker.s0 * MAIN.len; a.lane = n.walker.lane; a.speed0 = n.walker.speed; a.speed = a.speed0;
+      // (as velocidades do npcs.js são do tempo do passo apressado; todo mundo anda mais devagar agora, como a Duda)
+      a.s = n.walker.s0 * MAIN.len; a.lane = n.walker.lane; a.speed0 = n.walker.speed * 0.6; a.speed = a.speed0;
       walkerPlace(a); a.fwd.copy(a.tan);
     } else {
       const r = resolveAt(n.at);
@@ -111,10 +112,26 @@ function updateWalker(a, dt) {
 // Caramelo: fica na frente da loja, passeia, e segue a Duda depois de uma conversa
 function updateDog(a, dt) {
   const st = a.ch.st;
-  let tgt = a.wander || a.home, keep = 0.35, maxSp = 2.6;
-  const fleeing = state.chase === a.id && state.mode === 'play';
-  const following = !fleeing && state.follow > 0 && (state.mode === 'play' || state.mode === 'cutscene');
-  if (fleeing) {
+  let tgt = a.wander || a.home, keep = 0.35, maxSp = 1.5;
+  const fleeing = !a.talking && state.chase === a.id && state.mode === 'play';
+  const following = !fleeing && !a.talking && state.follow > 0 && (state.mode === 'play' || state.mode === 'cutscene');
+  if (a.talking) {
+    // carinho: vem até a frente da Duda e senta virado para ela
+    if (!a.petSpot) {
+      const to = _w.a.copy(a.d).sub(player.d); to.addScaledVector(player.d, -to.dot(player.d));
+      if (to.lengthSq() < 1e-10) to.copy(player.fwd);
+      a.petSpot = offsetDir(player.d, to.normalize(), PET_D);
+    }
+    // não deu para chegar (meio-fio, banca): fica onde está e a Duda vai até ele
+    if (a.stuck > 0.5) a.petBlocked = true;
+    const close = a.dist < PET_D + 0.15;
+    tgt = a.petSpot; keep = 0.02; maxSp = a.petBlocked || close ? 0 : 1.3;
+    if (arcDist(a.d, a.petSpot) < 0.3 || a.petBlocked || close) {
+      const dir = _w.a.copy(player.d).addScaledVector(a.d, -player.d.dot(a.d)).normalize();
+      const ang = Math.atan2(_w.b.crossVectors(a.fwd, dir).dot(a.d), a.fwd.dot(dir));
+      a.fwd.applyAxisAngle(a.d, ang * (1 - Math.exp(-dt * 6))).addScaledVector(a.d, -a.fwd.dot(a.d)).normalize();
+    }
+  } else if (fleeing) {
     // brincadeira de pega-pega: foge da Duda, espera quando ela fica para trás
     const dp = arcDist(a.d, player.d);
     a.timer -= dt;
@@ -161,6 +178,54 @@ function updateDog(a, dt) {
   if (!following && !fleeing && arcDist(a.d, a.home) > 25 && !a.vis) { a.d.copy(a.home); a.h = a.homeH; a.fwd.copy(a.baseFwd); }
 }
 
+// carinho no bicho: a Duda vira para ele, agacha (ou estica o braço, se ele está no alto) e faz carinho
+const PET_D = 0.8;   // o Caramelo senta a essa distância da Duda (a mão dela alcança a cabeça dele)
+const _pd = V3();
+function petByHero(a, dt) {
+  const hs = player.ch.st;
+  if (!a.talking) { if (a.petting) { a.petting = false; a.petSpot = null; a.petBlocked = false; hs.crouch = false; hs.pet = false; player.auto = null; } return; }
+  if (!a.petting) { a.petting = true; a.petT = 0; }
+  a.petT += dt;
+  const up = player.d, dir = _b.p.copy(a.d).addScaledVector(up, -a.d.dot(up));
+  if (dir.lengthSq() > 1e-10) {
+    dir.normalize();
+    const f = player.fwd, ang = Math.atan2(_b.r.crossVectors(f, dir).dot(up), f.dot(dir));
+    f.applyAxisAngle(up, ang * (1 - Math.exp(-dt * 5))).addScaledVector(up, -f.dot(up)).normalize();
+  }
+  // se o bicho não chega (meio-fio, muro), a Duda dá uns passos até ele
+  const gap = a.dist - (a.pet === 'cat' ? 0.6 : PET_D);
+  player.auto = gap > 0.12 && a.petT > (a.pet === 'cat' ? 0 : 0.6) && a.petT < 3.5 ? { dir: _pd.copy(dir), speed: clamp(gap * 2.2, 0.5, 1.4) } : null;
+  // altura da cabeça do bicho em relação aos pés da Duda: baixo, ela agacha; no alto (o Mingau no muro), carinho em pé
+  hs.reachH = clamp(a.h + (a.ch.P.hy || 0.4) - player.feet, 0, 1.8);
+  const near = gap < 0.3;
+  hs.crouch = near && hs.reachH < 0.8;
+  hs.pet = near && a.dist < 1.4;
+  if (hs.pet) { a.ch.st.happy = Math.max(a.ch.st.happy, 0.25); a.ch.st.wag = Math.max(a.ch.st.wag, 0.3); }
+}
+// a Duda olha para quem fala com ela, ou para quem está perto e na frente
+const _h = { rel: V3(), r: V3(), p: V3() };
+function heroLook() {
+  const hs = player.ch.st, up = player.d, f = player.fwd;
+  let best = null, bs = 1e9;
+  if (state.mode !== 'title') for (const a of ACTORS) {
+    if (!a.vis) continue;
+    if (a.talking) { best = a; break; }
+    if (a.dist > 3.4 || state.dialog) continue;
+    const dir = _h.rel.copy(a.d).sub(up);
+    if (dir.dot(f) < -0.15 * a.dist / R) continue;
+    if (a.dist < bs) { bs = a.dist; best = a; }
+  }
+  if (!best) { hs.lookT.yaw = 0; hs.lookT.pitch = 0; return; }
+  const aup = best.up || best.d;
+  _h.p.copy(best.ch.rig.position).addScaledVector(aup, best.ch.pet ? (best.ch.P.hy || 0.4) : best.ch.headY);
+  _h.rel.subVectors(_h.p, player.head);
+  _h.r.crossVectors(up, f);
+  const lx = _h.rel.dot(_h.r), lz = _h.rel.dot(f), ly = _h.rel.dot(up);
+  const yaw = Math.atan2(lx, lz);
+  hs.lookT.yaw = Math.abs(yaw) < 1.9 ? clamp(yaw, -1.0, 1.0) : 0;
+  hs.lookT.pitch = clamp(-Math.atan2(ly, Math.hypot(lx, lz)), -0.35, 0.55);
+}
+
 // comportamento de cada um
 const _b = { rel: V3(), r: V3(), p: V3() };
 export function updateActors(dt, t) {
@@ -171,6 +236,7 @@ export function updateActors(dt, t) {
     if (n.walker) updateWalker(a, dt);
     else if (n.roam) updateDog(a, dt);
     a.dist = arcDist(player.d, a.d);
+    if (a.pet) petByHero(a, dt);
     a.vis = overHorizon(a.d, 0, 2.5, camera.position, camD) && (a.dist < 75 || cam.far);
     ch.rig.visible = a.vis;
     // ações próprias
@@ -215,6 +281,7 @@ export function updateActors(dt, t) {
     a.acc += dt;
     if (a.vis && (a.dist < 40 || (state.frame + a.idx) % 3 === 0)) { (ch.pet ? posePet : poseChar)(ch, a.acc); a.acc = 0; }
   }
+  heroLook();
 }
 
 // ---------------- emoções da Duda (teclas 1 a 6 ou o painel) e quem responde ----------------

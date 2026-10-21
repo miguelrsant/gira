@@ -1,7 +1,8 @@
 // ---------------- geometrias ----------------
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { LOW } from '../core/config.js';
-import { D2R, lerp, Y } from '../core/math.js';
+import { D2R, lerp, sstep, Y } from '../core/math.js';
 import { _gc } from '../world/geo.js';
 import { vnoise3 } from '../world/noise.js';
 
@@ -25,6 +26,99 @@ export function taperG(r1, r2, len, n = LOW ? 8 : 10) {
   return new THREE.LatheGeometry(pts, n, Math.PI);
 }
 export function latheG(prof, n = LOW ? 12 : 16) { return new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(Math.max(1e-4, r), y)), n, Math.PI); }
+// curva suave (Catmull-Rom) passando pelos pontos [r, y]
+export function smoothPts(pts, k = 3) {
+  const out = [], n = pts.length;
+  for (let i = 0; i < n - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(n - 1, i + 2)];
+    for (let j = 0; j < k; j++) {
+      const t = j / k, t2 = t * t, t3 = t2 * t;
+      const f = (a, b, c, d) => 0.5 * (2 * b + (c - a) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (3 * b - a - 3 * c + d) * t3);
+      out.push([f(p0[0], p1[0], p2[0], p3[0]), f(p0[1], p1[1], p2[1], p3[1])]);
+    }
+  }
+  out.push(pts[n - 1]);
+  return out;
+}
+// braço/perna com forma de músculo: rs = raios de baixo (y=0) para cima (y=len), pontas arredondadas
+// open: 'bottom' deixa a boca de baixo aberta (barra de manga, bermuda)
+export function limbG(rs, len, o = {}) {
+  const m = rs.length, cs = LOW ? 3 : 4, pts = [];
+  if (o.open !== 'bottom') for (let i = 0; i < cs; i++) { const a = -Math.PI / 2 + i / cs * Math.PI / 2; pts.push([Math.cos(a) * rs[0], Math.sin(a) * rs[0]]); }
+  const side = smoothPts(rs.map((r, j) => [r, len * j / (m - 1)]), LOW ? 2 : 3);
+  pts.push(...side);
+  for (let i = 1; i <= cs; i++) { const a = i / cs * Math.PI / 2; pts.push([Math.cos(a) * rs[m - 1], len + Math.sin(a) * rs[m - 1]]); }
+  const g = new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(Math.max(1e-4, r), y)), o.n || (LOW ? 8 : 12), Math.PI);
+  return g;
+}
+// caixa de cantos redondos (sola de tênis, bolsos): escalada no TM, os cantos acompanham
+export function rboxG() {
+  if (!_gc.has('rbox')) { const g = new RoundedBoxGeometry(1, 1, 1, LOW ? 2 : 3, 0.32); _gc.set('rbox', g); }
+  return _gc.get('rbox');
+}
+
+// ---------------- tronco com curvas ----------------
+// perfil em "unidades do tronco": y = 0 na cintura (junta do tronco), 0,35 no ombro; r = raio antes da largura
+export function torsoProf(P) {
+  const b = P.belly || 0, cst = P.chest || 0, shd = P.shoulders || 0, hw = P.hipW ?? 1, ww = P.waistW ?? 1;
+  return [
+    [0.0, -0.135], [0.07, -0.131], [0.115, -0.115], [0.14 * hw, -0.08], [0.147 * hw, -0.04],
+    [0.14 * lerp(hw, ww, 0.6) + b * 0.5, 0.01], [0.13 * ww + b, 0.07], [0.135 * ww + b * 0.7, 0.125],
+    [0.145 + cst * 0.5 + b * 0.25, 0.185], [0.152 + cst * 0.4, 0.24], [0.155 + shd, 0.285],
+    [0.148 + shd, 0.318], [0.13 + shd * 0.6, 0.348], [0.098 + shd * 0.2, 0.378], [0.06, 0.402], [0.0, 0.415],
+  ];
+}
+const bell = (y, a, m, b) => sstep(a, m, y) * (1 - sstep(m, b, y));
+// volume que um torno não dá: busto/peito na frente, bumbum e a curva das costas atrás
+export function torsoDZ(P, y, c) {
+  const f = Math.max(0, c), k = Math.max(0, -c);
+  return (P.bust || 0) * bell(y, 0.12, 0.215, 0.3) * f * f + (P.belly || 0) * 0.6 * bell(y, -0.03, 0.07, 0.17) * f * f
+    - (P.butt || 0) * bell(y, -0.135, -0.065, 0.02) * k * k + 0.009 * bell(y, -0.01, 0.075, 0.16) * k * k - 0.007 * bell(y, 0.16, 0.26, 0.35) * k * k;
+}
+// raio do perfil numa altura (para seguir a superfície: alças do macacão)
+export function profR(pts, y) {
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [r0, y0] = pts[i], [r1, y1] = pts[i + 1];
+    if (y >= y0 && y <= y1) return lerp(r0, r1, (y - y0) / Math.max(1e-6, y1 - y0));
+  }
+  return 0;
+}
+// pedaço do tronco entre y0 e y1 (unidades do tronco), opcionalmente só uma fatia na frente (phi)
+// off: afasta da pele (roupa por cima); flare: [y onde começa, quanto abre] alarga a barra de baixo
+export function torsoG(P, o = {}) {
+  const w = P.tw, ky = P.ky, td = P.td;
+  const full = smoothPts(torsoProf(P), LOW ? 2 : 3);
+  const y0 = o.y0 ?? -1, y1 = o.y1 ?? 1;
+  const pts = [];
+  for (let i = 0; i < full.length; i++) {
+    const [r, y] = full[i];
+    if (y < y0 || y > y1) continue;
+    if (!pts.length && i > 0 && y > y0) pts.push([profR(full, y0), y0]);
+    pts.push([r, y]);
+  }
+  if (pts.length && pts[pts.length - 1][1] < y1 && y1 < 0.415) pts.push([profR(full, y1), y1]);
+  const off = o.off || 0, fl = o.flare;
+  const v2 = pts.map(([r, y]) => new THREE.Vector2(Math.max(1e-4, r + off + (fl ? fl[1] * sstep(fl[0], y0, y) : 0)), y));
+  const g = new THREE.LatheGeometry(v2, o.n || (LOW ? 12 : 18), o.phi0 ?? 0, o.phiL ?? Math.PI * 2);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), r = Math.hypot(x, z);
+    const c = r > 1e-5 ? z / r : 0;
+    p.setXYZ(i, x * w, y * ky, z * w * td + torsoDZ(P, y, c) * (1 + off * 4));
+  }
+  g.computeVertexNormals(); weldNormals(g);
+  return g;
+}
+// ponto da superfície do tronco (unidades do tronco -> corpo, sem a altura da cintura)
+export function torsoPt(P, full, phi, y, off = 0, out = new THREE.Vector3()) {
+  const r = profR(full, y) + off, x = Math.sin(phi) * r, z = Math.cos(phi) * r;
+  return out.set(x * P.tw, y * P.ky, z * P.tw * P.td + torsoDZ(P, y, Math.cos(phi)));
+}
+// alça: tubo que segue uma lista de pontos
+export function strapG(pts, r) {
+  const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+  return new THREE.TubeGeometry(curve, LOW ? 16 : 26, r, LOW ? 4 : 6, false);
+}
 export const HEADK = {
   adult: { jaw: 0.3, wide: 1, tall: 1.06, deep: 0.97, chin: 0.05 },
   kid: { jaw: 0.16, wide: 1.03, tall: 1.0, deep: 0.98, chin: 0.02 },

@@ -79,12 +79,20 @@ function drawFace(g, f, k) {
     if (happy) eyeClosed(g, cx, ey, s, f, true);
     else if (closed) eyeClosed(g, cx, ey, s, f, false);
     else eyeOpen(g, cx, ey, s, f);
-    if (f.bags) { g.strokeStyle = 'rgba(120,74,92,0.38)'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(cx - 6, ey + 9); g.quadraticCurveTo(cx, ey + 12.5, cx + 6, ey + 9); g.stroke(); }
+    if (f.bags) {
+      // olheira (bags: 2 = noite mal dormida, mais funda e dupla)
+      const deep = f.bags === 2;
+      g.strokeStyle = deep ? 'rgba(104,58,88,0.58)' : 'rgba(120,74,92,0.38)'; g.lineWidth = deep ? 2.1 : 1.6;
+      g.beginPath(); g.moveTo(cx - 6, ey + 9); g.quadraticCurveTo(cx, ey + 12.5, cx + 6, ey + 9); g.stroke();
+      if (deep) { g.lineWidth = 1.3; g.beginPath(); g.moveTo(cx - 4, ey + 12.5); g.quadraticCurveTo(cx, ey + 15, cx + 4, ey + 12.5); g.stroke(); }
+    }
     if (f.wrinkles) { g.strokeStyle = shade; g.lineWidth = 1.2; g.beginPath(); g.moveTo(X(s * (ex + 0.17)), ey - 1); g.lineTo(X(s * (ex + 0.23)), ey - 3); g.moveTo(X(s * (ex + 0.17)), ey + 2); g.lineTo(X(s * (ex + 0.23)), ey + 3); g.stroke(); }
   }
   // sobrancelhas
   const by = Yp(f.browY ?? 0.2), bc = f.brow || '#2f2a28';
-  const tilt = { calm: [0, 0], worry: [-3.2, 1.6], angry: [3.4, -2.4], up: [-2.6, -2.6], sad: [-2.2, 2.4] }[f.brows || 'calm'];
+  // sorrindo de olho fechado, a sobrancelha relaxa (nada de cara brava feliz)
+  const bk = happy && f.brows !== 'up' ? 'calm' : f.brows || 'calm';
+  const tilt = { calm: [0, 0], worry: [-3.2, 1.6], angry: [3.4, -2.4], up: [-2.6, -2.6], sad: [-2.2, 2.4] }[bk];
   if (!f.noBrows) { g.strokeStyle = bc; g.lineWidth = f.thickBrows ? 3.8 : 2.4; for (const s of [-1, 1]) { g.beginPath(); g.moveTo(X(s * 0.17), by + tilt[0]); g.quadraticCurveTo(X(s * 0.33), by - 2.4 + (tilt[0] + tilt[1]) / 2, X(s * 0.49), by + tilt[1]); g.stroke(); } }
   // nariz
   g.strokeStyle = shade; g.lineWidth = 1.7;
@@ -110,6 +118,12 @@ function drawFace(g, f, k) {
       else { g.moveTo(X(-0.08), my); g.lineTo(X(0.08), my); }
       g.stroke();
     }
+  }
+  // gota de suor na têmpora (exausta)
+  if (f.sweat) {
+    const sx = X(0.7), sy = Yp(0.36);
+    g.fillStyle = '#a9dcf2'; g.strokeStyle = '#4f86b8'; g.lineWidth = 1.6;
+    g.beginPath(); g.moveTo(sx, sy - 9); g.quadraticCurveTo(sx + 6, sy + 1, sx, sy + 5); g.quadraticCurveTo(sx - 6, sy + 1, sx, sy - 9); g.fill(); g.stroke();
   }
   // óculos, máscara
   if (f.glasses) {
@@ -163,6 +177,11 @@ function drawPetFace(g, f, k) {
     for (const s of [-1, 1]) for (const a of [-0.08, 0, 0.08]) { g.moveTo(X(s * 0.3), Yp(-0.33 + a * 0.5)); g.lineTo(X(s * 0.92), Yp(-0.3 + a * 2.2)); }
     g.stroke();
   }
+}
+// redesenha os 4 quadros de um rosto no mesmo lugar do atlas (o humor da Duda muda de um dia para o outro)
+export function redrawFace(slot, f) {
+  for (let k = 0; k < 4; k++) slotDraw(slot + k, 1, (g) => drawFace(g, f, k));
+  FACE.tex.needsUpdate = true;
 }
 const _faceDone = new Map();
 // reuse: quadro de um rosto antigo que pode ser redesenhado quando o atlas enche (troca de roupa da Duda)

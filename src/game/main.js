@@ -118,7 +118,7 @@ export async function boot() {
   window.__ready = true;
 }
 window.__gira = {
-  state, player, ACTORS, cam, SPOTS, DISTRICTS, PAGES, PAGEOBJ, COLLIDERS, ATL, FACE, renderer, TITLE, insideTall, pushOut, groundAt, latOf, lonOf,
+  state, player, ACTORS, cam, camera, SPOTS, DISTRICTS, PAGES, PAGEOBJ, COLLIDERS, ATL, FACE, renderer, TITLE, insideTall, pushOut, groundAt, latOf, lonOf,
   go(la, lo, hd) { teleport(dirOf(la, lo), hd || 0); },
   near(id, back = 2.4) { const a = actor(id); const d = offsetDir(a.d, a.fwd, back); teleport(d, 0); player.fwd.copy(a.d).sub(player.d).normalize(); player.camFwd.copy(player.fwd); snapCamera(); },
   day(n) { state.day = n; refreshTasks(); },
@@ -128,4 +128,6 @@ window.__gira = {
   mood(m) { setHeroMood(m); },
   gesture(g) { heroGesture(g); },
   missions: MISSION_DEBUG,
+  // câmera de teste: lab(ângulo em volta da Duda, distância, altura, fov); lab() volta ao normal
+  lab(a, d = 3, h = 0, fov = 30, y = 0.75) { cam.shot = a === undefined ? null : { kind: 'lab', a, d, h, fov, y }; },
 };

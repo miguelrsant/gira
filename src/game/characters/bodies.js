@@ -2,22 +2,23 @@
 import * as THREE from 'three';
 import { LOW, R } from '../core/config.js';
 import { makeGrad, patchMat } from '../core/materials.js';
-import { C, orient, pickR, rand, sstep } from '../core/math.js';
+import { C, lerp, orient, pickR, rand, sstep } from '../core/math.js';
 import { blobG, cylG, DOME, Geo, GEO, sphG, TM, torG } from '../world/geo.js';
 import { decBox, decLogo, decNews, decPhone, decSign, STRIKE } from './decals.js';
-import { FACE, faceSheet, FAW, FS, hexMix, slotUV } from './faces.js';
-import { HAIR, headGeos, HEADK, latheG, shellGeo, taperG } from './parts.js';
+import { FACE, faceSheet, FAW, FS, hexMix, redrawFace, slotUV } from './faces.js';
+import { HAIR, headGeos, HEADK, latheG, limbG, profR, rboxG, shellGeo, smoothPts, strapG, taperG, torsoDZ, torsoG, torsoProf } from './parts.js';
 
 const gradC = makeGrad([150, 255]);
 
 // ---------------- corpos ----------------
+// hipW/waistW: largura do quadril e da cintura; bust/butt: volume do peito e do bumbum (o torno não dá)
 const BODY = {
-  f: { hr: 0.15, hip: 0.8, knee: 0.44, ank: 0.085, waist: 0.86, shY: 1.205, shX: 0.155, neck: 1.295, arm: 0.245, fore: 0.21, hipX: 0.08, tw: 0.95, td: 0.7, belly: 0, chest: 0.014, lg: 0.95, ag: 0.92, head: 'adult' },
-  m: { hr: 0.15, hip: 0.81, knee: 0.45, ank: 0.085, waist: 0.87, shY: 1.23, shX: 0.172, neck: 1.315, arm: 0.255, fore: 0.215, hipX: 0.082, tw: 1.03, td: 0.7, belly: 0, chest: 0, lg: 1.0, ag: 1.0, head: 'adult' },
-  big: { hr: 0.155, hip: 0.8, knee: 0.44, ank: 0.085, waist: 0.86, shY: 1.22, shX: 0.19, neck: 1.305, arm: 0.25, fore: 0.21, hipX: 0.095, tw: 1.22, td: 0.92, belly: 0.05, chest: 0, lg: 1.2, ag: 1.15, head: 'wide' },
-  strong: { hr: 0.148, hip: 0.82, knee: 0.455, ank: 0.085, waist: 0.88, shY: 1.25, shX: 0.205, neck: 1.335, arm: 0.26, fore: 0.22, hipX: 0.085, tw: 1.24, td: 0.78, belly: 0, chest: 0.02, lg: 1.12, ag: 1.35, head: 'adult', shoulders: 0.035 },
-  elder: { hr: 0.15, hip: 0.76, knee: 0.42, ank: 0.08, waist: 0.82, shY: 1.15, shX: 0.16, neck: 1.235, arm: 0.24, fore: 0.205, hipX: 0.08, tw: 1.04, td: 0.76, belly: 0.025, chest: 0, lg: 0.95, ag: 0.95, head: 'elder', stoop: 0.22 },
-  kid: { hr: 0.142, hip: 0.5, knee: 0.28, ank: 0.07, waist: 0.545, shY: 0.8, shX: 0.118, neck: 0.865, arm: 0.17, fore: 0.15, hipX: 0.058, tw: 0.74, td: 0.74, belly: 0.008, chest: 0, lg: 0.75, ag: 0.72, head: 'kid' },
+  f: { hipW: 1.06, waistW: 0.86, bust: 0.016, butt: 0.014, hr: 0.15, hip: 0.8, knee: 0.44, ank: 0.085, waist: 0.86, shY: 1.205, shX: 0.155, neck: 1.295, arm: 0.245, fore: 0.21, hipX: 0.08, tw: 0.95, td: 0.7, belly: 0, chest: 0.014, lg: 0.95, ag: 0.92, head: 'adult' },
+  m: { hipW: 0.95, waistW: 0.97, bust: 0.004, butt: 0.006, hr: 0.15, hip: 0.81, knee: 0.45, ank: 0.085, waist: 0.87, shY: 1.23, shX: 0.172, neck: 1.315, arm: 0.255, fore: 0.215, hipX: 0.082, tw: 1.03, td: 0.7, belly: 0, chest: 0, lg: 1.0, ag: 1.0, head: 'adult' },
+  big: { hipW: 1.0, waistW: 1.02, bust: 0.006, butt: 0.012, hr: 0.155, hip: 0.8, knee: 0.44, ank: 0.085, waist: 0.86, shY: 1.22, shX: 0.19, neck: 1.305, arm: 0.25, fore: 0.21, hipX: 0.095, tw: 1.22, td: 0.92, belly: 0.05, chest: 0, lg: 1.2, ag: 1.15, head: 'wide' },
+  strong: { hipW: 0.93, waistW: 0.9, bust: 0.01, butt: 0.006, hr: 0.148, hip: 0.82, knee: 0.455, ank: 0.085, waist: 0.88, shY: 1.25, shX: 0.205, neck: 1.335, arm: 0.26, fore: 0.22, hipX: 0.085, tw: 1.24, td: 0.78, belly: 0, chest: 0.02, lg: 1.12, ag: 1.35, head: 'adult', shoulders: 0.035 },
+  elder: { hipW: 1.0, waistW: 1.0, bust: 0.006, butt: 0.008, hr: 0.15, hip: 0.76, knee: 0.42, ank: 0.08, waist: 0.82, shY: 1.15, shX: 0.16, neck: 1.235, arm: 0.24, fore: 0.205, hipX: 0.08, tw: 1.04, td: 0.76, belly: 0.025, chest: 0, lg: 0.95, ag: 0.95, head: 'elder', stoop: 0.22 },
+  kid: { hipW: 0.98, waistW: 0.98, bust: 0, butt: 0.004, hr: 0.142, hip: 0.5, knee: 0.28, ank: 0.07, waist: 0.545, shY: 0.8, shX: 0.118, neck: 0.865, arm: 0.17, fore: 0.15, hipX: 0.058, tw: 0.74, td: 0.74, belly: 0.008, chest: 0, lg: 0.75, ag: 0.72, head: 'kid' },
 };
 const SKINS = ['#f6d7c3', '#eec1a1', '#d9a27c', '#b97c57', '#8d5a3b', '#6b4430'];
 const HAIRCOL = ['#2f3437', '#3d3330', '#5a4032', '#8a5a3a', '#c99a5b', '#d9d4cc', '#9b4a3a', '#29323d'];
@@ -64,119 +65,167 @@ export function makeChar(spec) {
   mk(head, 0, hr * 0.55, -hr * 0.95);                  // 13 rabo de cavalo
   mk(foreR, 0, -P.fore - 0.03 * P.ag, 0.0);              // 14 objeto na mão
   mk(foreR, 0, -P.fore - 0.03 * P.ag, 0.0);              // 15 cartaz da greve
-  // ---- tronco ----
-  const ky = (P.shY - P.waist) / 0.35, w = P.tw, b = P.belly, cst = P.chest, shd = P.shoulders || 0;
-  const prof = [[0.0, -0.12], [0.137, -0.12], [0.14, -0.05], [0.134 + b * 0.8, 0.04], ...(bot.kind === 'overall' ? [[0.136 + b * 0.88, 0.064], [0.137 + b * 0.9, 0.076]] : []), [0.14 + b, 0.1], [0.148 + cst + b * 0.4, 0.18], [0.156 + cst * 0.6, 0.24], [0.16 + shd, 0.3], [0.15 + shd, 0.34], [0.112 + shd * 0.5, 0.375], [0.06, 0.395], [0.0, 0.4]];
-  const torsoC = dress ? tc : (top.kind === 'apron' ? tc : tc);
-  // macacão: a barriga e as costas até a cintura são do tecido do macacão (nada de camiseta aparecendo por baixo)
-  const ovr = bot.kind === 'overall' ? { cf: (x, y) => (y < P.waist + 0.07 * ky ? C(bc) : C(torsoC)) } : null;
-  { const tg = latheG(prof.map(([r, y]) => [r * w, y * ky])); add(tg, TM(0, P.waist, 0, 1, 1, P.td), torsoC, 3, BI.torso, ovr); tg.dispose(); }
+  // ---- tronco: peças com curvas (quadril, cintura, peito, ombros caídos) ----
+  P.ky = (P.shY - P.waist) / 0.35;
+  const ky = P.ky, w = P.tw;
+  const full = smoothPts(torsoProf(P), 3);
+  // z da frente (ou das costas, s = -1) do corpo na altura yu (unidades do tronco), a x do meio
+  const surfZ = (x, yu, s = 1) => { const r = profR(full, yu) * w, c = Math.sqrt(Math.max(0, 1 - (x / Math.max(r, 1e-4)) ** 2)); return s * c * r * P.td + torsoDZ(P, yu, s * c); };
+  const YU = (yu) => P.waist + yu * ky;
+  // de baixo da cintura vai com o quadril, de cima com o tronco: a cintura dobra macia
+  const waistF = (x, y) => { const k = sstep(P.waist - 0.03 * ky, P.waist + 0.1 * ky, y); return [BI.root, 1 - k, BI.torso, k]; };
+  const piece = (o, color, id, bone) => { const tg = torsoG(P, o); add(tg, TM(0, P.waist, 0), color, id, bone ?? BI.torso, bone === undefined ? { skinF: waistF } : null); tg.dispose(); };
+  const ovr = bot.kind === 'overall';
+  if (dress) piece({}, tc, 3);
+  else {
+    // calça/bermuda/saia até a cintura; o macacão sobe mais e fica por cima da camiseta
+    piece(ovr ? { y1: 0.085, off: 0.004 } : { y1: 0.012 }, bc, 4);
+    piece(ovr ? { y0: 0.03 } : { y0: -0.045, off: 0.003, flare: [-0.012, 0.006] }, tc, 3);
+  }
   // pescoço
   { const ng = taperG(0.042 * hr / 0.15, 0.045 * hr / 0.15, P.neck - P.shY + 0.06); add(ng, TM(0, P.shY - 0.02, 0.0), skin, 1, BI.torso); ng.dispose(); }
   if (top.kind === 'polo' || top.kind === 'shirt' || top.kind === 'blazer') add(torG(1, 0.32, 6, 14), TM(0, P.shY + 0.02, 0.005, 0.058, 0.058, 0.05, 0, Math.PI / 2 + 0.25), top.collar || (top.kind === 'polo' ? tc : '#f4f4ef'), 6, BI.torso);
   if (top.kind === 'hoodie') add(torG(1, 0.45, 6, 14), TM(0, P.shY + 0.0, -0.035, 0.08, 0.08, 0.06, 0, Math.PI / 2 - 0.35), tc, 6, BI.torso);
-  // ---- braços ----
+  // ---- braços: ombro redondo, bíceps, antebraço que afina no pulso ----
   const armC = ['long', 'shirt', 'blazer', 'cardigan', 'hoodie', 'jacket'].includes(top.kind) ? (top.sleeve || tc) : skin;
   const sleeveShort = ['tee', 'polo', 'apron', 'dress'].includes(top.kind);
   const shoulderC = top.kind === 'tank' ? skin : (top.sleeve || tc);
   for (const s of [1, -1]) {
-    const x = s * P.shX, bA = s > 0 ? BI.armL : BI.armR, bF = s > 0 ? BI.foreL : BI.foreR, ag = P.ag;
-    add(sphG(12, 8), TM(x - s * 0.012, P.shY - 0.014, 0, 0.042 * ag, 0.046 * ag, 0.042 * ag), shoulderC, 3, bA);
-    const ua = taperG(0.045 * ag, 0.038 * ag, P.arm); add(ua, TM(x, P.shY - P.arm, 0), armC, armC === skin ? 1 : 3, bA); ua.dispose();
-    if (sleeveShort) { const sl = taperG(0.056 * ag, 0.05 * ag, P.arm * 0.42); add(sl, TM(x, P.shY - P.arm * 0.5, 0), top.sleeve || tc, 3, bA); sl.dispose(); }
-    const fa = taperG(0.037 * ag, 0.029 * ag, P.fore); add(fa, TM(x, P.shY - P.arm - P.fore, 0), armC, armC === skin ? 1 : 3, bF); fa.dispose();
-    if (armC !== skin) { const cf = taperG(0.036 * ag, 0.036 * ag, 0.025); add(cf, TM(x, P.shY - P.arm - P.fore - 0.004, 0), hexMix(armC, '#000000', 0.12), 6, bF); cf.dispose(); }
+    const x = s * P.shX, bA = s > 0 ? BI.armL : BI.armR, bF = s > 0 ? BI.foreL : BI.foreR, ag = P.ag, skA = armC === skin;
+    const cl = skA ? 0 : 0.005;
+    add(sphG(12, 8), TM(x - s * 0.012, P.shY - 0.02, 0, 0.042 * ag, 0.044 * ag, 0.042 * ag), shoulderC, 3, bA);
+    // (a ponta de cima fica escondida dentro do ombro e da manga)
+    { const ua = limbG([0.036, 0.038, 0.041, 0.043, 0.043].map((r) => (r + cl) * ag), P.arm - 0.032); add(ua, TM(x, P.shY - P.arm, 0), armC, skA ? 1 : 3, bA); ua.dispose(); }
+    // manga curta justinha, com a copa arredondada no ombro (sem quina)
+    if (sleeveShort) { const ln = P.arm * 0.38, sl = limbG([0.053, 0.052, 0.05, 0.048].map((r) => r * ag), ln, { open: 'bottom' }); add(sl, TM(x, P.shY - 0.024 - ln, 0), top.sleeve || tc, 3, bA); sl.dispose(); }
+    { const fa = limbG([0.028, 0.031, 0.035, 0.038, 0.037].map((r) => (r + cl) * ag), P.fore); add(fa, TM(x, P.shY - P.arm - P.fore, 0), armC, skA ? 1 : 3, bF); fa.dispose(); }
+    if (!skA) { const cf = taperG(0.035 * ag, 0.035 * ag, 0.025); add(cf, TM(x, P.shY - P.arm - P.fore - 0.004, 0), hexMix(armC, '#000000', 0.12), 6, bF); cf.dispose(); }
+    // mão: palma arredondada e polegar
     const hy = P.shY - P.arm - P.fore - 0.036 * ag;
-    add(sphG(10, 8), TM(x, hy, 0.004, 0.034 * ag, 0.047 * ag, 0.026 * ag), skin, 1, bF);
-    add(sphG(8, 6), TM(x - s * 0.018 * ag, hy + 0.012, 0.022 * ag, 0.014 * ag, 0.022 * ag, 0.014 * ag, 0, -0.3), skin, 1, bF);
-    if (acc.has('watch') && s > 0) add(torG(1, 0.25, 5, 12), TM(x, P.shY - P.arm - P.fore + 0.02, 0, 0.036 * ag, 0.036 * ag, 0.036 * ag, 0, Math.PI / 2), '#e5c27a', 6, bF);
+    add(sphG(10, 8), TM(x, hy, 0.004, 0.035 * ag, 0.048 * ag, 0.027 * ag), skin, 1, bF);
+    add(sphG(8, 6), TM(x - s * 0.019 * ag, hy + 0.01, 0.022 * ag, 0.014 * ag, 0.024 * ag, 0.014 * ag, 0, -0.3), skin, 1, bF);
+    if (acc.has('watch') && s > 0) add(torG(1, 0.25, 5, 12), TM(x, P.shY - P.arm - P.fore + 0.02, 0, 0.034 * ag, 0.034 * ag, 0.034 * ag, 0, Math.PI / 2), '#e5c27a', 6, bF);
   }
-  // ---- quadril, pernas, pés ----
-  const legC = bot.kind === 'pants' || bot.kind === 'overall' ? bc : skin;
-  const lg = P.lg;
-  if (!dress) add(sphG(14, 10), TM(0, P.hip + 0.005, 0, 0.128 * w, 0.105 * ky, 0.09 * P.td / 0.7), bc, 4, BI.root);
+  // ---- pernas: coxa mais cheia em cima, joelho, panturrilha e tornozelo fino ----
+  const legC = bot.kind === 'pants' || ovr ? bc : skin;
+  const lg = P.lg, skL = legC === skin;
   for (const s of [1, -1]) {
     const x = s * P.hipX, bL = s > 0 ? BI.legL : BI.legR, bS = s > 0 ? BI.shinL : BI.shinR, bFt = s > 0 ? BI.footL : BI.footR;
-    const th = taperG(0.066 * lg, 0.05 * lg, P.hip - P.knee); add(th, TM(x, P.knee, 0), legC, legC === skin ? 1 : 4, bL); th.dispose();
-    if (bot.kind === 'shorts') { const sh = taperG(0.075 * lg, 0.066 * lg, (P.hip - P.knee) * 0.55); add(sh, TM(x, P.hip - (P.hip - P.knee) * 0.55, 0), bc, 4, bL); sh.dispose(); }
-    const sn = taperG(0.049 * lg, 0.035 * lg, P.knee - P.ank); add(sn, TM(x, P.ank, 0), legC, legC === skin ? 1 : 4, bS); sn.dispose();
-    if (spec.socks && legC === skin) { const sk = taperG(0.04 * lg, 0.038 * lg, 0.075); add(sk, TM(x, P.ank - 0.01, 0), spec.socks, 7, bS); sk.dispose(); }
-    // calçado (o pé fica no tornozelo; a sola encosta em y = 0)
-    const fl = Math.min(1, lg * 1.05), ay = P.ank;
+    const thR = skL ? [0.046, 0.048, 0.054, 0.061, 0.066] : [0.051, 0.053, 0.058, 0.064, 0.069];
+    { const th = limbG(thR.map((r) => r * lg), P.hip - P.knee); add(th, TM(x, P.knee, 0), legC, skL ? 1 : 4, bL); th.dispose(); }
+    if (bot.kind === 'shorts') { const sh = limbG([0.074, 0.073, 0.072, 0.071].map((r) => r * lg), (P.hip - P.knee) * 0.55, { open: 'bottom' }); add(sh, TM(x, P.hip - (P.hip - P.knee) * 0.55, 0), bc, 4, bL); sh.dispose(); }
+    // macacão: barra dobrada que mostra a meia
+    const cuffY = ovr ? P.ank + 0.075 : P.ank;
+    const snR = skL ? [0.033, 0.035, 0.041, 0.048, 0.05, 0.047] : [0.05, 0.05, 0.051, 0.052, 0.051, 0.049];
+    { const sn = limbG(snR.map((r) => r * lg), P.knee - cuffY, ovr ? { open: 'bottom' } : {}); add(sn, TM(x, cuffY, 0), legC, skL ? 1 : 4, bS); sn.dispose(); }
+    if (ovr) {
+      add(torG(1, 0.3, 6, 14), TM(x, cuffY + 0.006, 0, 0.053 * lg, 0.053 * lg, 0.053 * lg, 0, Math.PI / 2), hexMix(bc, '#ffffff', 0.2), 6, bS);
+      const ak = limbG([0.034, 0.035, 0.036].map((r) => r * lg), cuffY - P.ank + 0.01); add(ak, TM(x, P.ank - 0.02, 0), spec.socks || '#f4f4ef', 7, bS); ak.dispose();
+    }
+    if (spec.socks && skL) { const sk = taperG(0.038 * lg, 0.036 * lg, 0.075); add(sk, TM(x, P.ank - 0.01, 0), spec.socks, 7, bS); sk.dispose(); }
+    // calçado (o pé fica no tornozelo; a sola encosta em y = 0); solas de cantos redondos
+    const fl = Math.min(1, lg * 1.05), ay = P.ank, RB = rboxG();
     if (shoes.kind === 'sandal') {
       add(sphG(10, 6), TM(x, 0.035, 0.035, 0.04 * fl, 0.03, 0.09 * fl), skin, 1, bFt);
-      add(GEO.box, TM(x, 0.011, 0.03, 0.1 * fl, 0.022, 0.22 * fl), shoes.color, 5, bFt);
-      add(GEO.box, TM(x, 0.04, 0.075, 0.085 * fl, 0.014, 0.022), shoes.sole || '#f4f4ef', 6, bFt);
+      add(RB, TM(x, 0.012, 0.03, 0.1 * fl, 0.024, 0.22 * fl), shoes.color, 5, bFt);
+      add(RB, TM(x, 0.04, 0.075, 0.085 * fl, 0.016, 0.026), shoes.sole || '#f4f4ef', 6, bFt);
     } else if (shoes.kind === 'boot') {
       const bt = taperG(0.055 * fl, 0.052 * fl, Math.max(0.05, ay + 0.06)); add(bt, TM(x, 0.04, 0, 1, 1, 1.05), shoes.color, 5, bFt); bt.dispose();
       add(sphG(10, 6), TM(x, 0.045, 0.06, 0.055 * fl, 0.045, 0.08 * fl), shoes.color, 5, bFt);
-      add(GEO.box, TM(x, 0.012, 0.03, 0.12 * fl, 0.024, 0.22 * fl), shoes.sole || '#4b3a2f', 6, bFt);
+      add(RB, TM(x, 0.014, 0.03, 0.122 * fl, 0.028, 0.224 * fl), shoes.sole || '#4b3a2f', 6, bFt);
     } else if (shoes.kind === 'shoe') {
       add(sphG(10, 6), TM(x, 0.045, 0.035, 0.05 * fl, 0.04, 0.1 * fl), shoes.color, 5, bFt);
-      add(GEO.box, TM(x, 0.009, 0.035, 0.1 * fl, 0.018, 0.2 * fl), shoes.sole || '#2f2a28', 6, bFt);
+      add(RB, TM(x, 0.011, 0.035, 0.102 * fl, 0.022, 0.204 * fl), shoes.sole || '#2f2a28', 6, bFt);
     } else {
-      add(sphG(12, 8), TM(x, 0.05, 0.03, 0.058 * fl, 0.05, 0.105 * fl), shoes.color, 5, bFt);
-      add(GEO.box, TM(x, 0.016, 0.03, 0.122 * fl, 0.032, 0.232 * fl), shoes.sole || '#f4f4ef', 6, bFt);
-      add(sphG(10, 6), TM(x, 0.036, 0.125 * fl, 0.05 * fl, 0.032, 0.05 * fl), shoes.sole || '#f4f4ef', 6, bFt);
+      add(sphG(12, 8), TM(x, 0.052, 0.03, 0.058 * fl, 0.05, 0.106 * fl), shoes.color, 5, bFt);
+      add(RB, TM(x, 0.019, 0.03, 0.126 * fl, 0.038, 0.238 * fl), shoes.sole || '#f4f4ef', 6, bFt);
+      add(sphG(10, 6), TM(x, 0.038, 0.124 * fl, 0.05 * fl, 0.033, 0.05 * fl), shoes.sole || '#f4f4ef', 6, bFt);
       const cl = taperG(0.045 * fl, 0.045 * fl, 0.04); add(cl, TM(x, ay - 0.02, -0.005), shoes.color, 5, bFt); cl.dispose();
     }
   }
-  // saia / vestido
+  // saia / vestido (larga o bastante para o quadril novo não furar)
   if (bot.kind === 'skirt' || dress) {
-    const hem = P.knee + (dress ? -0.02 : 0.06), H0 = P.waist + 0.04 - hem;
-    const sk = latheG([[0.0, H0 + 0.01], [0.132 * w, H0], [0.145 * w, H0 * 0.7], [0.175 * w, H0 * 0.3], [0.205 * w, 0.02], [0.2 * w, 0.0], [0.0, 0.0]].reverse().map(([r, y]) => [r, y]));
+    const hem = P.knee + (dress ? -0.02 : 0.06), yTop = YU(0.05), H0 = yTop - hem, yHip = YU(-0.05) - hem;
+    const rW = profR(full, 0.05) * w + 0.01, rH = Math.max(profR(full, -0.05) * w + 0.014, 0.15 * w), rB = Math.max(0.205 * w, rH + 0.04);
+    const sk = latheG([[0, 0], [rB - 0.005, 0], [rB, 0.02], [lerp(rB, rH, 0.55), (0.02 + yHip) * 0.5], [rH, yHip], [rW, H0], [0, H0 + 0.01]]);
     // a barra acompanha as pernas (perto do quadril fica presa ao corpo): a coxa nunca fura a saia
     const span = P.hip + 0.03 - hem;
     const skinF = (x, y) => {
       const k = sstep(0, 1, (P.hip + 0.03 - y) / span) * 0.82, sL = sstep(-0.075, 0.075, x);
       return [BI.root, 1 - k, BI.legL, k * sL, BI.legR, k * (1 - sL)];
     };
-    add(sk, TM(0, hem, 0, 1, 1, 0.82), dress ? tc : bc, 4, BI.root, { skinF }); sk.dispose();
+    add(sk, TM(0, hem, 0, 1, 1, Math.max(0.82, P.td + 0.1)), dress ? tc : bc, 4, BI.root, { skinF }); sk.dispose();
   }
-  if (bot.kind === 'overall') {
-    add(GEO.box, TM(0, P.waist + 0.12 * ky, 0.095 * P.td / 0.7, 0.2 * w, 0.2 * ky, 0.03), bc, 4, BI.torso);
-    for (const s of [1, -1]) add(GEO.box, TM(s * 0.075 * w, P.waist + 0.27 * ky, 0.0, 0.03, 0.2 * ky, 0.23 * P.td / 0.7, 0, 0, 0), bc, 4, BI.torso);
+  if (ovr) {
+    // peitilho que acompanha a curva do corpo, bolso, botões e alças que passam por cima do ombro
+    const b1 = 0.245, bphi = 0.62;
+    piece({ y0: -0.005, y1: b1, phi0: -bphi, phiL: bphi * 2, off: 0.009, n: LOW ? 8 : 12 }, bc, 4, BI.torso);
+    piece({ y0: 0.115, y1: 0.19, phi0: -0.3, phiL: 0.6, off: 0.013, n: 6 }, hexMix(bc, '#000000', 0.15), 6, BI.torso);
+    const xs = Math.sin(bphi - 0.1) * profR(full, b1) * w;
+    for (const s of [1, -1]) {
+      // corte do tronco no plano x = xs: sobe pela frente, passa pelo ombro e desce pelas costas
+      const sec = [];
+      for (let i = 0; i <= 60; i++) { const yu = lerp(b1 - 0.012, 0.4, i / 60), r = profR(full, yu) * w; if (r <= xs) break; sec.push([yu, 1]); }
+      const yTopU = sec[sec.length - 1][0] + 0.004;
+      const back = [];
+      for (let i = 0; i <= 60; i++) { const yu = lerp(yTopU - 0.004, 0.07, i / 60), r = profR(full, yu) * w; if (r <= xs) continue; back.push([yu, -1]); }
+      const line = [...sec.map(([yu, sg]) => [s * xs, YU(yu), surfZ(xs, yu, sg)]), [s * xs, YU(yTopU), 0], ...back.map(([yu, sg]) => [s * xs, YU(yu), surfZ(xs, yu, sg)])];
+      // afasta da pele pela normal do corte (dentro do plano y-z)
+      const pts = line.map((p, i) => {
+        const a = line[Math.max(0, i - 1)], c = line[Math.min(line.length - 1, i + 1)];
+        const dy = c[1] - a[1], dz = c[2] - a[2], l = Math.hypot(dy, dz) || 1;
+        return new THREE.Vector3(p[0], p[1] - dz / l * 0.014, p[2] + dy / l * 0.014);
+      });
+      // menos pontos no meio da frente e das costas, mais na curva do ombro
+      const keep = pts.filter((p, i) => i === 0 || i === pts.length - 1 || i % 3 === 0 || Math.abs(p.z) < 0.06);
+      const sg = strapG(keep, 0.0115); add(sg, null, bc, 4, BI.torso); sg.dispose();
+      add(sphG(8, 6), TM(s * xs, YU(b1 - 0.018), surfZ(xs, b1 - 0.018) + 0.02, 0.016, 0.016, 0.009), '#e5c27a', 7, BI.torso);
+    }
   }
   // ---- extras do tronco ----
-  const chestZ = 0.152 * P.td / 0.7 + b * 0.5;
+  const cz = (x, yu, d = 0) => surfZ(Math.abs(x), yu) + d;
   if (top.kind === 'apron') {
-    add(GEO.box, TM(0, P.waist + 0.17 * ky, chestZ - 0.03, 0.14 * w, 0.15 * ky, 0.018), top.c2 || '#f4f4ef', 6, BI.torso);
-    add(GEO.box, TM(0, P.hip - 0.06, 0.094 * P.td / 0.7, 0.21 * w, 0.28, 0.018, 0, -0.1), top.c2 || '#f4f4ef', 6, BI.root);
-    add(torG(1, 0.05, 4, 16), TM(0, P.waist + 0.01, 0, 0.142 * w, 0.142 * w, 0.142 * w * P.td, 0, Math.PI / 2), top.c2 || '#f4f4ef', 6, BI.torso);
+    const c2 = top.c2 || '#f4f4ef';
+    piece({ y0: 0.06, y1: 0.27, phi0: -0.5, phiL: 1.0, off: 0.01, n: 8 }, c2, 6, BI.torso);
+    // pano que cai da cintura até perto do joelho, curvo na frente do corpo
+    const r0 = profR(full, 0.0) * w + 0.012, yA = P.knee + 0.12;
+    const ap = new THREE.LatheGeometry([new THREE.Vector2(r0 + 0.05, 0), new THREE.Vector2(r0 + 0.02, (P.waist - yA) * 0.5), new THREE.Vector2(r0, P.waist - yA)], 8, -0.85, 1.7);
+    add(ap, TM(0, yA, 0, 1, 1, P.td + 0.12), c2, 6, BI.root); ap.dispose();
+    add(torG(1, 0.05, 4, 20), TM(0, P.waist + 0.01, 0, r0, r0, r0 * (P.td + 0.06), 0, Math.PI / 2), c2, 6, BI.torso);
   }
   if (top.kind === 'blazer' || top.kind === 'shirt' || acc.has('tie')) {
-    if (top.kind === 'blazer') add(GEO.box, TM(0, P.waist + 0.22 * ky, chestZ - 0.018, 0.075 * w, 0.18 * ky, 0.02, 0, 0, 0), '#f4f4ef', 6, BI.torso);
-    add(GEO.box, TM(0, P.waist + 0.16 * ky, chestZ - 0.004, 0.035, 0.2 * ky, 0.018), spec.tie || '#c25959', 7, BI.torso);
-    add(sphG(8, 6), TM(0, P.waist + 0.345 * ky, chestZ - 0.03, 0.024, 0.02, 0.016), spec.tie || '#c25959', 7, BI.torso);
+    if (top.kind === 'blazer') piece({ y0: 0.1, y1: 0.36, phi0: -0.26, phiL: 0.52, off: 0.006, n: 6 }, '#f4f4ef', 6, BI.torso);
+    add(rboxG(), TM(0, YU(0.16), cz(0, 0.2, 0.012), 0.035, 0.2 * ky, 0.016, 0, -0.05), spec.tie || '#c25959', 7, BI.torso);
+    add(sphG(8, 6), TM(0, YU(0.345), cz(0, 0.345, 0.012), 0.024, 0.02, 0.016), spec.tie || '#c25959', 7, BI.torso);
   }
-  if (top.kind === 'cardigan') for (let i = 0; i < 4; i++) add(sphG(6, 4), TM(0, P.waist + (0.04 + i * 0.08) * ky, chestZ - 0.012 + (i === 1 ? b * 0.6 : 0), 0.011, 0.011, 0.008), '#e9e6dc', 6, BI.torso);
-  if (top.kind === 'polo' && top.logo !== false) { const uv = decLogo(); add(GEO.plane, TM(-0.07 * w, P.waist + 0.24 * ky, chestZ + 0.001, 0.07, 0.07, 1), '#ffffff', 6, BI.torso, { uv }); }
-  if (top.kind === 'hoodie') add(GEO.box, TM(0, P.waist + 0.02, chestZ - 0.01, 0.17 * w, 0.08, 0.02), hexMix(tc, '#000000', 0.12), 6, BI.torso);
+  if (top.kind === 'cardigan') for (let i = 0; i < 4; i++) { const yu = 0.04 + i * 0.08; add(sphG(6, 4), TM(0, YU(yu), cz(0, yu, 0.004), 0.011, 0.011, 0.008), '#e9e6dc', 6, BI.torso); }
+  if (top.kind === 'polo' && top.logo !== false) { const uv = decLogo(); add(GEO.plane, TM(-0.07 * w, YU(0.24), cz(0.07 * w, 0.24, 0.004), 0.07, 0.07, 1, -0.35), '#ffffff', 6, BI.torso, { uv }); }
+  if (top.kind === 'hoodie') piece({ y0: -0.03, y1: 0.07, phi0: -0.5, phiL: 1.0, off: 0.008, n: 8 }, hexMix(tc, '#000000', 0.12), 6, BI.torso);
   if (acc.has('strap')) {
     const sm = new THREE.Matrix4().makeTranslation(0, P.waist + 0.19 * ky, 0).multiply(new THREE.Matrix4().makeRotationZ(-0.6))
-      .multiply(new THREE.Matrix4().makeScale(0.2 * w, 0.2 * w, 0.122 * P.td / 0.7)).multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2));
+      .multiply(new THREE.Matrix4().makeScale(0.2 * w, 0.2 * w, 0.13 * P.td / 0.7)).multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2));
     add(torG(1, 0.06, 4, 24), sm, spec.strapC || '#5a6062', 6, BI.torso);
     add(sphG(10, 6), TM(0.15 * w, P.hip + 0.05, 0.03, 0.07, 0.075, 0.04), spec.bagC || '#6b7a7d', 7, BI.root);
   }
   if (acc.has('badge')) {
-    for (const s of [1, -1]) add(GEO.box, TM(s * 0.035, P.waist + 0.27 * ky, chestZ - 0.02, 0.01, 0.15 * ky, 0.008, 0, -0.25 * s, s * 0.32), '#4f86b8', 6, BI.torso);
-    add(GEO.box, TM(0, P.waist + 0.15 * ky, chestZ + 0.003, 0.055, 0.075, 0.008), '#f4f4ef', 7, BI.torso);
-    add(GEO.plane, TM(0, P.waist + 0.153 * ky, chestZ + 0.0085, 0.045, 0.045, 1), '#ffffff', 7, BI.torso, { uv: decLogo() });
+    for (const s of [1, -1]) add(GEO.box, TM(s * 0.035, YU(0.27), cz(0.035, 0.27, 0.004), 0.01, 0.15 * ky, 0.008, 0, -0.25 * s, s * 0.32), '#4f86b8', 6, BI.torso);
+    add(rboxG(), TM(0, YU(0.15), cz(0, 0.15, 0.008), 0.055, 0.075, 0.008), '#f4f4ef', 7, BI.torso);
+    add(GEO.plane, TM(0, YU(0.153), cz(0, 0.153, 0.0135), 0.045, 0.045, 1), '#ffffff', 7, BI.torso, { uv: decLogo() });
   }
   if (acc.has('backpack')) {
-    add(sphG(12, 8), TM(0, P.waist + 0.15 * ky, -0.15 * P.td / 0.7 - 0.05, 0.14 * w, 0.16 * ky, 0.08), spec.packC || '#66bde6', 6, BI.torso);
-    for (const s of [1, -1]) add(torG(1, 0.12, 4, 12), TM(s * 0.085 * w, P.waist + 0.2 * ky, -0.02, 0.06, 0.14 * ky, 0.12 * P.td / 0.7, Math.PI / 2, 0, 0), '#3f8fb8', 6, BI.torso);
+    add(sphG(12, 8), TM(0, YU(0.15), surfZ(0, 0.15, -1) - 0.065, 0.14 * w, 0.16 * ky, 0.08), spec.packC || '#66bde6', 6, BI.torso);
+    for (const s of [1, -1]) add(torG(1, 0.12, 4, 12), TM(s * 0.085 * w, YU(0.2), -0.02, 0.06, 0.14 * ky, 0.12 * P.td / 0.7, Math.PI / 2, 0, 0), '#3f8fb8', 6, BI.torso);
   }
   if (acc.has('delivery')) {
-    const bz = -0.12 * P.td / 0.7 - 0.2;
-    add(GEO.box, TM(0, P.waist + 0.16 * ky, bz, 0.42, 0.42, 0.36), '#c25959', 6, BI.torso);
+    const bz = surfZ(0, 0.16, -1) - 0.19;
+    add(rboxG(), TM(0, YU(0.16), bz, 0.42, 0.42, 0.36), '#c25959', 6, BI.torso);
     const uv = decBox();
-    add(GEO.plane, TM(0, P.waist + 0.16 * ky, bz - 0.181, 0.36, 0.36, 1, Math.PI), '#ffffff', 7, BI.torso, { uv });
-    for (const s of [1, -1]) add(GEO.plane, TM(s * 0.211, P.waist + 0.16 * ky, bz, 0.32, 0.32, 1, s * Math.PI / 2), '#ffffff', 7, BI.torso, { uv });
-    for (const s of [1, -1]) add(GEO.box, TM(s * 0.09 * w, P.waist + 0.2 * ky, -0.03, 0.025, 0.3 * ky, 0.2 * P.td / 0.7), '#373f42', 6, BI.torso);
+    add(GEO.plane, TM(0, YU(0.16), bz - 0.181, 0.36, 0.36, 1, Math.PI), '#ffffff', 7, BI.torso, { uv });
+    for (const s of [1, -1]) add(GEO.plane, TM(s * 0.211, YU(0.16), bz, 0.32, 0.32, 1, s * Math.PI / 2), '#ffffff', 7, BI.torso, { uv });
+    for (const s of [1, -1]) add(GEO.box, TM(s * 0.09 * w, YU(0.2), -0.03, 0.025, 0.3 * ky, 0.2 * P.td / 0.7), '#373f42', 6, BI.torso);
   }
   if (acc.has('chain')) add(torG(1, 0.08, 5, 18), TM(0, P.shY - 0.005, 0.025, 0.075, 0.075, 0.07, 0, Math.PI / 2 - 0.5), '#e5c27a', 6, BI.torso);
-  if (acc.has('whistle')) { add(sphG(8, 6), TM(0, P.waist + 0.24 * ky, chestZ + 0.01, 0.018, 0.018, 0.024), '#c9cdc2', 7, BI.torso); for (const s of [1, -1]) add(GEO.box, TM(s * 0.03, P.waist + 0.3 * ky, chestZ - 0.01, 0.006, 0.12 * ky, 0.006, 0, 0, s * 0.35), '#c25959', 6, BI.torso); }
+  if (acc.has('whistle')) { add(sphG(8, 6), TM(0, YU(0.24), cz(0, 0.24, 0.014), 0.018, 0.018, 0.024), '#c9cdc2', 7, BI.torso); for (const s of [1, -1]) add(GEO.box, TM(s * 0.03, YU(0.3), cz(0.03, 0.3, 0.004), 0.006, 0.12 * ky, 0.006, 0, 0, s * 0.35), '#c25959', 6, BI.torso); }
   // ---- cabeça ----
   const hk = HEADK[P.head], HG = headGeos(P.head);
   const HM = (x, y, z, sx, sy, sz, ry, rx, rz) => TM(x, hc + y, 0.008 + z, sx, sy, sz, ry, rx, rz);
@@ -301,7 +350,7 @@ export function makeChar(spec) {
   bones[BI.sign].scale.setScalar(1e-4);
   if (!prop || prop === 'mega') bones[BI.prop].scale.setScalar(1e-4);
   const ch = {
-    spec, P, rig, mesh, bones, mat, slot, height: hc + hr * 1.25, headY: hc,
+    spec, P, rig, mesh, bones, mat, slot, faceBase: f, height: hc + hr * 1.25, headY: hc,
     st: { t: rand() * 10, speed: 0, phase: rand() * 6, w: 0, run: 0, air: 0, pose: spec.pose || 'stand', act: spec.act || null, actW: 0, look: { yaw: 0, pitch: 0 }, lookT: { yaw: 0, pitch: 0 }, talk: false, mouth: 0, mouthOpen: false, blink: rand() * 3, blinkOn: 0, happy: 0, sleep: false, tired: spec.tired || 0, frame: -1, sign: false, propOn: !!prop && prop !== 'mega', signW: 0, wave: 0 },
     d: new THREE.Vector3(0, 1, 0), fwd: new THREE.Vector3(0, 0, 1), h: 0,
   };
@@ -313,6 +362,18 @@ export function placeChar(ch, d, fwd, h) {
   ch.d.copy(d); ch.fwd.copy(fwd).addScaledVector(d, -fwd.dot(d)).normalize(); ch.h = h;
   ch.rig.position.copy(d).multiplyScalar(R + h);
   orient(ch.rig, d, ch.fwd);
+}
+// rosto de cada humor da Duda (a história escolhe o humor do dia; o jeito do corpo fica em animation.js)
+const MOOD_FACE = {
+  irritada: { brows: 'angry', mouth: 'frown', lid: 0.24, bags: true },
+  entediada: { brows: 'calm', mouth: 'line', lid: 0.46, bags: true, browY: 0.16 },
+  tranquila: {},
+  cansada: { brows: 'sad', mouth: 'line', lid: 0.36, bags: 2 },
+  exausta: { brows: 'worry', mouth: 'frown', lid: 0.52, bags: 2, sweat: true },
+  feliz: { brows: 'up', mouth: 'grin', blush: true, bags: false },
+};
+export function setMoodFace(ch, mood) {
+  if (ch.faceBase) redrawFace(ch.slot, Object.assign({}, ch.faceBase, MOOD_FACE[mood] || {}));
 }
 export function setFace(ch, k) {
   if (ch.st.frame === k) return;

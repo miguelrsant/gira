@@ -10,13 +10,15 @@ export const OUTFIT_OPTS = {
 };
 export let outfit = { hair: 0, top: 0, bottom: 0, shoes: 0, skin: 0 };
 try { const s = JSON.parse(localStorage.getItem('gira3-outfit')); if (s) outfit = Object.assign(outfit, s); } catch (e) {}
+// a Duda tem a cabeça um pouco maior e as pernas um pouco mais curtas que as outras moças (mais fofa)
+const DUDA_DIMS = { hr: 0.163, hip: 0.735, knee: 0.405, waist: 0.795, shY: 1.135, shX: 0.15, neck: 1.222, arm: 0.232, fore: 0.198, hipX: 0.078 };
 export function heroSpec() {
   const h = OUTFIT_OPTS.hair[outfit.hair % OUTFIT_OPTS.hair.length], t = OUTFIT_OPTS.top[outfit.top % OUTFIT_OPTS.top.length];
   const b = OUTFIT_OPTS.bottom[outfit.bottom % OUTFIT_OPTS.bottom.length], s = OUTFIT_OPTS.shoes[outfit.shoes % OUTFIT_OPTS.shoes.length];
   const skin = OUTFIT_OPTS.skin[outfit.skin % OUTFIT_OPTS.skin.length][0];
   return {
-    body: 'f', skin, hair: { style: h[0], color: h[1], band: h[0] === 'afro' ? '#c25959' : '#f3c258' }, top: { kind: t[0], color: t[1] }, bottom: { kind: b[0], color: b[1] },
+    body: 'f', dims: DUDA_DIMS, skin, hair: { style: h[0], color: h[1], band: h[0] === 'afro' ? '#c25959' : '#f3c258' }, top: { kind: t[0], color: t[1] }, bottom: { kind: b[0], color: b[1] },
     shoes: { kind: s[0], color: s[1], sole: s[2] }, socks: b[0] === 'pants' || b[0] === 'overall' ? null : '#2f3437', acc: t[0] === 'polo' ? ['badge', 'watch'] : ['watch'],
-    face: { bags: true, mouth: 'smile' }, sign: 'PAREI!'
+    face: { bags: true, mouth: 'smile', hero: true }, sign: 'PAREI!'
   };
 }

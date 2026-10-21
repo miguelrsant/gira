@@ -7,7 +7,7 @@ import { scene } from '../core/renderer.js';
 import { SPOTS } from '../world/places.js';
 import { groundAt } from '../world/terrain.js';
 import { poseChar } from '../characters/animation.js';
-import { disposeChar, makeChar, placeChar } from '../characters/bodies.js';
+import { disposeChar, makeChar, placeChar, setMoodFace } from '../characters/bodies.js';
 import { heroSpec, outfit, OUTFIT_OPTS } from '../story/outfit.js';
 import { audio, sfx } from './audio.js';
 import { showEmote } from './bubbles.js';
@@ -19,8 +19,12 @@ export const player = {
   camFwd: V3(), lock: false, pos: V3(), head: V3(), actT: 0, lastStep: 0,
   // referência dos controles: presa ao mundo enquanto a mesma direção continua apertada
   ctrlFwd: V3(), ctrlOn: false, ctrlA: 0,
-  // humor do dia (a história escolhe com setHeroMood) e gesto de uma vez só (heroGesture)
-  mood: null, gesture: null, gestureT: 0,
+  // humor do dia (a história escolhe com setHeroMood)
+  mood: null,
+  // pulo: aperto guardado (buffer), tempo depois de sair da beirada (coyote) e o agachadinho de antes
+  jumpBuf: 0, coy: 0, pre: 0, touchHeld: false,
+  // passos que o jogo dá sozinho (chegar perto do Caramelo para o carinho): { dir, speed }
+  auto: null,
 };
 // quadro do céu, transportado junto com a Duda (nuvens passam por cima quando ela anda)
 export const SKYF = { x: V3(), z: V3(), shift: new THREE.Vector3() };
@@ -40,12 +44,20 @@ export function placePlayer() {
   player.pos.copy(player.ch.rig.position);
   player.head.copy(player.d).multiplyScalar(R + player.feet + player.ch.headY);
 }
+// centro da cabeça já com a pose (agachada, a cabeça desce junto; a câmera da conversa e os balões usam isso)
+function headFromBone() {
+  const hb = player.ch.bones[2];
+  hb.updateWorldMatrix(true, false);
+  player.head.set(0, player.ch.headY - player.ch.P.neck, 0);
+  hb.localToWorld(player.head);
+}
 function rebuildPlayer() {
   const old = player.ch, st = old.st;
   const spec = heroSpec(); spec.reuseSlot = old.slot;
   const ch = makeChar(spec);
-  for (const k of ['pose', 'act', 'sign', 'tired', 'seat']) ch.st[k] = st[k];
+  for (const k of ['pose', 'act', 'sign', 'tired', 'seat', 'mood', 'crouch', 'pet', 'reachH']) ch.st[k] = st[k];
   disposeChar(old); scene.add(ch.rig); player.ch = ch; placePlayer();
+  if (player.mood) setMoodFace(ch, player.mood);
 }
 const _m = { a: V3(), b: V3(), md: V3(), nd: V3(), ax: V3(), q: new THREE.Quaternion() };
 function tryMove(from, dir, dist, out) {
@@ -69,7 +81,8 @@ export function stepPlayer(dt) {
   const run = can && (keys.ShiftLeft || keys.ShiftRight || mag > 1.08);
   if (mag > 1) { ix /= mag; iy /= mag; mag = 1; }
   const cf = player.camFwd.addScaledVector(up, -player.camFwd.dot(up)).normalize();
-  const moving = mag > 0.08;
+  const am = player.auto;
+  const moving = !!am || mag > 0.08;
   // "para a direita" é a direita da câmera na hora em que se aperta; enquanto a direção não muda,
   // a Duda segue reto e a câmera vira atrás dela (sem a câmera puxar a curva junto)
   const ia = Math.atan2(ix, iy);
@@ -78,14 +91,16 @@ export function stepPlayer(dt) {
   const base = moving ? player.ctrlFwd.addScaledVector(up, -player.ctrlFwd.dot(up)).normalize() : cf;
   const right = _m.a.crossVectors(base, up).normalize();
   const md = _m.md.set(0, 0, 0).addScaledVector(base, iy).addScaledVector(right, ix);
+  if (am) md.copy(am.dir).addScaledVector(up, -am.dir.dot(up));
   if (moving) {
     md.normalize();
     const f = player.fwd, ang = Math.atan2(_m.b.crossVectors(f, md).dot(up), f.dot(md));
-    f.applyAxisAngle(up, ang * (1 - Math.exp(-dt * 13))).addScaledVector(up, -f.dot(up)).normalize();
+    f.applyAxisAngle(up, ang * (1 - Math.exp(-dt * 10))).addScaledVector(up, -f.dot(up)).normalize();
   }
   const ms = player.mood ? MOODS[player.mood].speed : 1;
-  const target = moving ? (run ? RUN : WALK) * ms * Math.min(1, mag * 1.25) : 0;
-  player.vel.lerp(_m.b.copy(md).multiplyScalar(target), 1 - Math.exp(-dt * (target > player.speed ? 7 : 11)));
+  const target = am ? am.speed : moving ? (run ? RUN : WALK) * ms * Math.min(1, mag * 1.25) : 0;
+  // arranca e freia com um pouco de peso (o corpo inclina junto, na animação)
+  player.vel.lerp(_m.b.copy(md).multiplyScalar(target), 1 - Math.exp(-dt * (target > player.speed ? 6 : 8)));
   player.vel.addScaledVector(up, -player.vel.dot(up));
   const sp = player.vel.length();
   let moved = 0;
@@ -117,25 +132,35 @@ export function stepPlayer(dt) {
   // chão, degraus e pulo
   const g = groundAt(up);
   const snap = 0.07 + player.aspeed * dt * 0.9;
+  const grounded = player.vy <= 0 && player.feet <= g + snap;
+  player.coy = grounded ? 0.1 : player.coy - dt;
+  if (player.jumpBuf > 0) player.jumpBuf -= dt;
+  if (!can) player.jumpBuf = 0;
+  // agacha rapidinho antes de sair do chão (antecipação), depois o impulso
+  if (player.jumpBuf > 0 && player.coy > 0 && player.pre <= 0) { player.pre = 0.07; player.jumpBuf = 0; st.jumpPre = true; }
+  if (player.pre > 0) {
+    player.pre -= dt;
+    if (player.pre <= 0) { player.vy = JUMP_V; player.coy = 0; st.jumpPre = false; sfx.jump(); }
+  }
   if (player.vy > 0 || player.feet > g + snap) {
-    player.vy -= 15 * dt; player.feet += player.vy * dt;
-    if (player.feet <= g) { if (player.vy < -5.5) sfx.land(); player.feet = g; player.vy = 0; }
+    // sobe enquanto o botão está apertado (soltar cedo dá um pulinho) e cai mais rápido do que sobe
+    const held = keys.Space || player.touchHeld;
+    const grav = player.vy > 0 ? (held ? GRAV : GRAV * 1.9) : GRAV * 1.45;
+    player.vy = Math.max(player.vy - grav * dt, -18); player.feet += player.vy * dt;
+    if (player.feet <= g) { if (player.vy < -5.5) sfx.land(); st.landV = player.vy; player.feet = g; player.vy = 0; }
   } else { player.feet = g; player.vy = 0; }
   player.air = player.feet > g + 0.06;
   placePlayer();
   // animação
   st.speed = player.aspeed;
   st.air = lerp(st.air, player.air ? 1 : 0, 1 - Math.exp(-dt * 12)); st.vy = player.vy;
+  st.mood = player.mood;
   if (player.mood) st.tired = lerp(st.tired, MOODS[player.mood].tired, 1 - Math.exp(-dt * 2));
   else if (!state.sunday && !state.strike) st.tired = 0.12 + 0.42 * clamp(state.walked / LAP, 0, 1) + (state.day === 7 ? 0.15 : 0);
   else st.tired = lerp(st.tired, 0, dt);
-  if (player.gesture) {
-    if (player.gestureT === 0) { st.act = GESTURE_ACT[player.gesture]; player.actT = 1.8; }
-    player.gestureT += dt;
-    if (player.gestureT > 1.8) player.gesture = null;
-  }
   if (player.actT > 0) { player.actT -= dt; if (player.actT <= 0 && !state.strike) st.act = null; }
   poseChar(player.ch, dt);
+  headFromBone();
   // passos
   const ph = Math.floor(st.phase / Math.PI);
   if (ph !== player.lastStep && player.aspeed > 0.6 && !player.air) sfx.step(player.aspeed > WALK + 0.5);
@@ -144,26 +169,36 @@ export function stepPlayer(dt) {
   // parada: "o dia parou"
   state.idleT = player.aspeed > 0.5 ? 0 : state.idleT + dt;
 }
-export function jump() {
-  if (state.mode === 'play' && !state.dialog && !player.air && player.vy <= 0 && !player.lock) { player.vy = 5.6; sfx.jump(); }
+// pulo: uns 95 cm de altura, pouco mais de meio segundo no ar
+const GRAV = 19.8, JUMP_V = 6.1;
+export function jump(touch = false) {
+  // o aperto vale por um instante: apertou um pouco antes de pousar, pula assim que encosta no chão
+  if (state.mode === 'play' && !state.dialog && !player.lock) player.jumpBuf = 0.14;
+  if (touch) player.touchHeld = true;
 }
+export function jumpRelease() { player.touchHeld = false; }
 
 // ---------------- humor da Duda ----------------
 // a história decide o humor de cada dia; aqui fica o visual (rosto, postura, ritmo e velocidade do andar)
+// (o jeito de andar e de ficar parada de cada humor fica em characters/animation.js, STYLES; o rosto, em faces.js)
 export const MOODS = {
-  irritada: { speed: 1, tired: 0.25 },     // segunda: com raiva e cansada
-  entediada: { speed: 0.9, tired: 0.2 },   // terça: tranquila, mas o tempo não passa
+  irritada: { speed: 1.05, tired: 0.25 },  // segunda: com raiva e cansada, passo duro
+  entediada: { speed: 0.85, tired: 0.2 },  // terça: tranquila, mas o tempo não passa
   tranquila: { speed: 1, tired: 0.05 },    // quarta: de boa
-  cansada: { speed: 0.85, tired: 0.45 },   // quinta: começa a cansar
-  exausta: { speed: 0.72, tired: 0.75 },   // sexta e sábado: dor de cabeça, bem mais devagar
-  feliz: { speed: 1.05, tired: 0 },        // domingo e greve
+  cansada: { speed: 0.82, tired: 0.45 },   // quinta: começa a cansar
+  exausta: { speed: 0.65, tired: 0.75 },   // sexta e sábado: dor de cabeça, bem mais devagar
+  feliz: { speed: 1.1, tired: 0 },         // domingo e greve
 };
-// gestos de uma vez só (por enquanto reaproveitam as poses que já existem)
-const GESTURE_ACT = { suspiro: 'sleepy', bocejo: 'sleepy', 'dor-de-cabeca': 'sweat', bufar: 'angry', espreguicar: 'cheer', 'olhar-relogio': 'think' };
-export const GESTURES = Object.keys(GESTURE_ACT);
-export function setHeroMood(name) { player.mood = MOODS[name] ? name : 'tranquila'; }
+// gestos de uma vez só (as animações ficam em characters/animation.js, GESTS)
+export const GESTURES = ['suspiro', 'bocejo', 'dor-de-cabeca', 'bufar', 'espreguicar', 'olhar-relogio'];
+export function setHeroMood(name) {
+  const m = MOODS[name] ? name : 'tranquila';
+  if (m === player.mood) return;
+  player.mood = m; player.ch.st.mood = m;
+  setMoodFace(player.ch, m);
+}
 export const heroMood = () => player.mood;
-export function heroGesture(name) { if (GESTURE_ACT[name]) { player.gesture = name; player.gestureT = 0; } }
+export function heroGesture(name) { if (GESTURES.includes(name)) player.ch.st.gesture = name; }
 
 // ---------------- guarda-roupa (o painel é o <Wardrobe>, em src/ui) ----------------
 export function changeOutfit(k, d) {

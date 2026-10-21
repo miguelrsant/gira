@@ -113,6 +113,13 @@ function lookPose(p, P, L) {
   P.copy(player.head).addScaledVector(toIt, -2.3).addScaledVector(side, 0.9).addScaledVector(up, 0.5);
   L.copy(p).lerp(player.head, 0.25);
 }
+// câmera de teste (window.__gira.lab): presa à Duda, num ângulo fixo em volta dela
+function labPose(sh, P, L) {
+  const up = player.d, f = player.fwd, r = _c.w.crossVectors(up, f).normalize();
+  const c = _c.s.copy(player.d).multiplyScalar(R + groundAt(player.d) + (sh.y ?? 0.75));
+  P.copy(c).addScaledVector(f, Math.cos(sh.a) * sh.d).addScaledVector(r, Math.sin(sh.a) * sh.d).addScaledVector(up, sh.h ?? 0);
+  L.copy(c);
+}
 export function snapCamera() {
   followPose(cam.pos, cam.look, 0);
   cam.up.copy(player.d);
@@ -123,7 +130,7 @@ export function snapCamera() {
 export function updateCamera(dt) {
   if (state.mode === 'title') { cam.far = true; return; }
   const sh = cam.shot;
-  const fT = sh && sh.kind !== 'orbit' ? fovFor() - 9 : fovFor();
+  const fT = sh && sh.fov ? sh.fov : sh && sh.kind !== 'orbit' ? fovFor() - 9 : fovFor();
   cam.fov = lerp(cam.fov, fT, 1 - Math.exp(-dt * 3));
   if (Math.abs(camera.fov - cam.fov) > 0.05) { camera.fov = cam.fov; camera.updateProjectionMatrix(); }
   // a câmera vai atrás da Duda sozinha: virou para a direita, a câmera vira junto
@@ -140,6 +147,7 @@ export function updateCamera(dt) {
   else if (sh.kind === 'talk') { talkPose(sh.a, P, L); rp = 4.2; rl = 5; }
   else if (sh.kind === 'intro') { introPose(sh, P, L, dt); rp = 14; rl = 6; }
   else if (sh.kind === 'look') { lookPose(sh.p, P, L); rp = 4; rl = 5; }
+  else if (sh.kind === 'lab') { labPose(sh, P, L); rp = rl = 400; }
   else if (sh.kind === 'orbit') {
     // de volta ao espaço, como na abertura: o planeta em pé, girando sem ninguém empurrar
     sh.t += dt;
