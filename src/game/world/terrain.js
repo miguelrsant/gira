@@ -114,6 +114,8 @@ export function H(d, info) {
   if (bz) {
     const n = bz.pn, zh = n ? (R + bz.h) / Math.max(0.5, d.x * n.x + d.y * n.y + d.z * n.z) - R : bz.h;
     h = lerp(h, zh, bw); lw = bw; lk = bz.kind;
+    // a calçada manda: lote nenhum sobe por cima dela
+    if (rn) { const rd = rn.road, w2 = 1 - sstep(rd.hw + rd.sw, rd.hw + rd.sw + 0.8, rn.dist); if (w2 > 0) h = lerp(h, rn.h, w2); }
   }
   if (info) { info.road = rw; info.lot = lw; info.kind = lk; }
   return h;
@@ -165,7 +167,7 @@ function groundColor(d, h, info, out) {
   let g = 0;
   if (h < SEA + 0.35 || lat < coast + 0.6) out.copy(h < SEA - 0.2 ? GC.sandW : GC.sand);
   else if (lon > 192 && lon < 288 && lat < -27.5 && info.road < 0.5) out.copy(GC.sand);
-  else if (info.road > 0.55) out.copy(GC.under);
+  else if (info.road > 0.985) out.copy(GC.under);
   else if (info.lot > 0.5 && info.kind !== 'grass') out.copy(info.kind === 'field' ? GC.field : info.kind === 'sand' ? GC.sand : GC.paved);
   else {
     const td = trailDist(d);
@@ -193,7 +195,12 @@ export function buildTerrain() {
     // debaixo da rua e da calçada o chão afunda um pouco, para nunca furar o asfalto
     let hm = h;
     const rn = roadNear(d, (r) => r.kind !== 'trail' && !r.noFlat);
-    if (rn && rn.dist < rn.road.hw + rn.road.sw + 0.1) hm = Math.min(h, rn.h - 0.1);
+    if (rn) {
+      const edge = rn.road.hw + rn.road.sw;
+      if (rn.dist < edge + 0.1) hm = Math.min(h, rn.h - 0.1);
+      // anel em volta da calçada: fica abaixo do topo dela, para nenhum triângulo do chão atravessar a borda
+      else if (rn.dist < edge + 0.6) hm = Math.min(h, rn.h + rn.road.top + (rn.road.sw ? 0.08 : -0.04));
+    }
     pos[i * 3] = d.x * (R + hm); pos[i * 3 + 1] = d.y * (R + hm); pos[i * 3 + 2] = d.z * (R + hm);
     ga[i] = groundColor(d, h, info, c);
     cl[i * 3] = c.r * 255; cl[i * 3 + 1] = c.g * 255; cl[i * 3 + 2] = c.b * 255;

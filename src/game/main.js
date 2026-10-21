@@ -15,7 +15,7 @@ import { addLandmarks } from './world/landmarks.js';
 import { defineWorld } from './world/layout.js';
 import { fillLots } from './world/lots.js';
 import { BUILDS, COLLIDERS, DISTRICTS, DYN, PAGES, SPOTS } from './world/places.js';
-import { buildRoads } from './world/roads.js';
+import { buildCorners, buildRoads } from './world/roads.js';
 import { buildGrass, scatter } from './world/scatter.js';
 import { buildWires, streetFurniture } from './world/street.js';
 import { buildTerrain, groundAt, waterMat } from './world/terrain.js';
@@ -97,7 +97,7 @@ export async function boot() {
   await nextFrame();
   buildTerrain();
   await nextFrame();
-  buildRoads();
+  buildRoads(); buildCorners();
   for (let i = 0; i < BUILDS.length; i++) BUILDS[i]();
   await nextFrame();
   streetFurniture(); scatter(); buildWires();
