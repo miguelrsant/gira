@@ -23,16 +23,17 @@ export function hideCard() { setUI({ card: { ...getUI().card, on: false } }); }
 // ---------------- cartão do dia ----------------
 function fmtClock(p) { const mins = 7 * 60 + Math.floor(p * 12 * 60); return String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0'); }
 export function updateHud() {
-  const p = state.sunday ? 1 : clamp(state.walked / LAP, 0, 1);
+  const p = state.sunday ? 1 : clamp(state.walked / LAP, 0, 1), extra = !state.sunday && state.walked > LAP;
   const day = {
     fill: (p * 100).toFixed(1) + '%',
-    pct: state.sunday ? 'folga' : Math.floor(p * 100) + '%',
-    clock: state.sunday ? fmtClock(dayP()) : fmtClock(p),
+    pct: state.sunday ? 'folga' : extra ? 'hora extra' : Math.floor(p * 100) + '%',
+    clock: state.sunday ? fmtClock(dayP()) : fmtClock(state.walked / LAP),
     name: state.sunday ? 'DOMINGO' : DAYS[state.day - 1],
     week: state.sunday ? 'FOLGA DE VERDADE' : `DIA ${state.day} DE 7 · SEMANA ${state.week}`,
+    animo: Math.round(state.animo * 100) + '%', mood: state.mood, low: state.animo < 0.25,
   };
   const ui = getUI(), o = ui.day;
-  if (o.fill !== day.fill || o.pct !== day.pct || o.clock !== day.clock || o.name !== day.name || o.week !== day.week) setUI({ day });
+  if (o.fill !== day.fill || o.pct !== day.pct || o.clock !== day.clock || o.name !== day.name || o.week !== day.week || o.animo !== day.animo || o.mood !== day.mood) setUI({ day });
   const stopped = (state.mode === 'play' && !state.sunday && !state.strike && state.idleT > 1.4 && !state.dialog) || state.strike;
   if (ui.stopped !== stopped) setUI({ stopped });
 }
@@ -77,4 +78,4 @@ export function toast(t, s, ms = 3200) {
 export function togglePanel(id) { setUI({ panel: id && getUI().panel !== id ? id : null }); sfx.paper(); }
 export function closePanels() { if (getUI().panel) setUI({ panel: null }); }
 // atalho de teste do menu
-export function skipDay() { if (state.mode === 'play' && !state.sunday && !state.strike) { state.walked = LAP; togglePanel(null); } }
+export function skipDay() { if (state.mode === 'play' && !state.sunday && !state.strike) { state.walked = LAP * 1.4; togglePanel(null); } }

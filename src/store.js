@@ -14,11 +14,13 @@ export const useUI = create(() => ({
 
   // HUD
   hudOn: false,
-  day: { name: 'SEGUNDA', clock: '07:00', week: 'DIA 1 DE 7 · SEMANA 1', fill: '0%', pct: '0%' },
+  day: { name: 'SEGUNDA', clock: '07:00', week: 'DIA 1 DE 7 · SEMANA 1', fill: '0%', pct: '0%', animo: '60%', mood: '', low: false },
   stopped: false,
   stoppedText: 'VOCÊ PAROU. O DIA PAROU.',
   toast: { on: false, t: '', s: '' },
   hint: { on: false, text: '' },
+  respiro: null,      // respiro onde a Duda está: { text, how, k } ou null
+  quests: [],         // cartão de objetivo: [{ kind, title, text, timer, low, main }]
   prompt: null,       // texto do aviso de interação ("CONVERSAR COM NARA") ou null
   musicOn: true,
 

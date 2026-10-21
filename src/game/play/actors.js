@@ -1,6 +1,6 @@
 // ================= gente e bichos =================
 import * as THREE from 'three';
-import { R, RUN } from '../core/config.js';
+import { R, RUN, WALK } from '../core/config.js';
 import { arcDist, clamp, headingVec, lerp, offsetDir, orient, rand, rr, V3 } from '../core/math.js';
 import { camera, scene } from '../core/renderer.js';
 import { overHorizon } from '../world/chunks.js';
@@ -112,8 +112,24 @@ function updateWalker(a, dt) {
 function updateDog(a, dt) {
   const st = a.ch.st;
   let tgt = a.wander || a.home, keep = 0.35, maxSp = 2.6;
-  const following = state.follow > 0 && (state.mode === 'play' || state.mode === 'cutscene');
-  if (following) {
+  const fleeing = state.chase === a.id && state.mode === 'play';
+  const following = !fleeing && state.follow > 0 && (state.mode === 'play' || state.mode === 'cutscene');
+  if (fleeing) {
+    // brincadeira de pega-pega: foge da Duda, espera quando ela fica para trás
+    const dp = arcDist(a.d, player.d);
+    a.timer -= dt;
+    if (!a.wander || a.timer < 0 || arcDist(a.d, a.wander) < 0.9) {
+      a.timer = rr(0.7, 1.5);
+      const away = _w.a.copy(a.d).sub(player.d); away.addScaledVector(a.d, -away.dot(a.d));
+      if (away.lengthSq() < 1e-8) away.copy(a.fwd);
+      away.normalize().applyAxisAngle(a.d, rr(-1, 1) + (a.stuck > 0.4 ? rr(1.2, 2) * (rand() < 0.5 ? -1 : 1) : 0));
+      a.wander = offsetDir(a.d, away, rr(3.5, 6));
+      if (rand() < 0.3 && dp < 9) sfx.bark();
+    }
+    tgt = a.wander; keep = 0.2;
+    maxSp = dp < 3.2 ? RUN * 0.8 : dp < 7 ? WALK * 1.15 : 0.01;
+    if (dp >= 7) st.wag = 2;
+  } else if (following) {
     tgt = player.d; keep = 1.6; maxSp = RUN * 0.98;
     if (state.mode === 'play') { state.follow -= dt; if (state.follow <= 0) setHint('O Caramelo voltou pra frente da loja dele.', 3500); }
   } else {
@@ -136,13 +152,13 @@ function updateDog(a, dt) {
       _w.q.setFromUnitVectors(a.d, nd); a.fwd.applyQuaternion(_w.q); a.d.copy(nd);
     } else { a.wander = null; a.stuck += dt; }
   }
-  if (a.stuck > 2.5 && !following) { a.wander = null; a.stuck = 0; }
+  if (a.stuck > (fleeing ? 0.6 : 2.5) && !following) { a.wander = null; a.stuck = 0; }
   a.speed = lerp(a.speed, sp, 1 - Math.exp(-dt * 8));
   st.speed = a.speed; st.pose = a.speed > 0.15 ? 'stand' : 'sit';
   if (sp > 0 || a.speed > 0.05) a.h = groundAt(a.d);
   if (a.dist < 3 && state.mode === 'play') st.wag = 0.4;
   // muito longe de casa e fora de vista: volta
-  if (!following && arcDist(a.d, a.home) > 25 && !a.vis) { a.d.copy(a.home); a.h = a.homeH; a.fwd.copy(a.baseFwd); }
+  if (!following && !fleeing && arcDist(a.d, a.home) > 25 && !a.vis) { a.d.copy(a.home); a.h = a.homeH; a.fwd.copy(a.baseFwd); }
 }
 
 // comportamento de cada um
@@ -159,12 +175,13 @@ export function updateActors(dt, t) {
     ch.rig.visible = a.vis;
     // ações próprias
     if (n.id === 'valdir') {
-      if (state.strike) { st.act = (Math.floor(t / 1.4) % 2) ? 'angry' : 'mega'; st.propOn = st.act === 'mega'; }
+      if (state.strike) { st.act = (Math.floor(t / 1.4) % 2) || state.flags.megaGone ? 'angry' : 'mega'; st.propOn = st.act === 'mega'; }
       else if (state.sunday) { st.act = 'shrug'; st.propOn = false; }
       else if (!a.talking && a.dist < 11 && state.mode === 'play') {
         a.timer -= dt;
         if (a.timer < 0) { a.mega = !a.mega; a.timer = a.mega ? 2.4 : rr(4, 7); }
-        st.act = a.mega ? 'mega' : 'hips'; st.propOn = a.mega;
+        const has = !state.flags.megaGone;
+        st.act = a.mega && has ? 'mega' : 'hips'; st.propOn = a.mega && has;
       } else { st.act = 'hips'; st.propOn = false; a.mega = false; }
     }
     if (n.id === 'bia' && a.dist < 6 && a.waved !== dayKey && state.mode === 'play' && !a.talking) { a.waved = dayKey; st.act = 'wave'; a.actT = 2.4; }
@@ -207,6 +224,7 @@ const EMOTE_REPLY = { '!': '!', '?': '?', '♥': '♥', '…': '…', 'zz': 'zz'
 export function playerEmote(e) {
   if (state.mode !== 'play' || state.dialog) return;
   showEmote(null, e);
+  state.lastEmote = { e, t: performance.now() };
   const st = player.ch.st;
   if (!state.strike) { st.act = EMOTE_ACT[e]; player.actT = 1.8; }
   if (e === '♥') st.happy = 1.6;

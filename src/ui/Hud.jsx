@@ -15,6 +15,8 @@ function DayCard() {
       <div className="week" id="week">{d.week}</div>
       <div className="bar"><i id="barfill" style={{ width: d.fill }} /></div>
       <div className="barlabel"><span>volta do dia</span><span id="pct">{d.pct}</span></div>
+      <div className={cx('bar animo', d.low && 'low')}><i style={{ width: d.animo }} /></div>
+      <div className="barlabel"><span>ânimo</span><span>{d.mood}</span></div>
     </div>
   );
 }
@@ -23,6 +25,32 @@ function DayCard() {
 function Stopped() {
   const on = useUI((s) => s.stopped), text = useUI((s) => s.stoppedText);
   return <div id="stopped" className={cx(on && 'on')}>{text}</div>;
+}
+
+// o que fazer agora: a história do dia, os pedidos aceitos e a meta do Valdir (com relógio)
+function Quests() {
+  const qs = useUI((s) => s.quests);
+  return (
+    <div id="quests" className={cx(qs.length && 'on')}>
+      {qs.map((q, i) => (
+        <div key={q.kind + q.title} className={cx('quest paper', q.main && 'main', q.low && 'low')} style={{ '--i': i }}>
+          <div className="qk"><span>{q.kind}</span>{q.timer !== null && <b className="qt">{q.timer}s</b>}</div>
+          <div className="qtitle">{q.title}</div>
+          <div className="qtext">{q.text}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// respiro: uma pausa que devolve ânimo (olhar o mar, pular amarelinha...)
+function Respiro() {
+  const r = useUI((s) => s.respiro);
+  return (
+    <div id="respiro" className={cx('paper', r && 'on')}>
+      {r && <><b>RESPIRO</b> {r.text} <small>· {r.how}</small><div className="bar"><i style={{ width: (r.k * 100).toFixed(0) + '%' }} /></div></>}
+    </div>
+  );
 }
 
 // nome do bairro quando você chega
@@ -72,6 +100,8 @@ export function Hud() {
     <div id="hud" className={cx('layer', on && 'on')}>
       <DayCard />
       <Stopped />
+      <Quests />
+      <Respiro />
       <Toast />
       <SideButtons />
       <Prompt />

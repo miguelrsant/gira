@@ -8,6 +8,9 @@ export const state = {
   talked: new Set(), read: new Set(), pages: new Set(), visited: new Set(),
   dialog: null, musicOn: true, idleT: 0, district: null, autoSun: false, sunP: null, freeze: false,
   follow: 0, hints: new Set(), frame: 0,
+  // missões: quem topou parar junto, escolhas da semana, quem está fugindo, a última emoção da Duda
+  support: new Set(), flags: {}, chase: null, lastEmote: null,
+  animo: 0.6, mood: '',      // ânimo da Duda (0 a 1) e o humor escolhido pelo mood.js
 };
 // hora do dia, de 0 (07:00) a 1 (19:00): anda quando você anda
 export function dayP() {

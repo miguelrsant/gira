@@ -170,6 +170,17 @@ export const NPCS = [
 export const INTRO_LINES = ['Acordei atrasada de novo...', 'Aqui o planeta só gira se a gente *andar*. Uma volta por dia, seis dias por semana.', 'No sétimo dia, dizem que tem *folga*. Bora.'];
 export const VALDIR_SPEECH = ['Atenção, família GIRA!', 'A folga de domingo foi... *remanejada*.', 'Demanda alta. Vocês entendem. O planeta *não pode parar*!'];
 export const STRIKE_LINES = ['Todo mundo parou.', 'O Seu Valdir ficou olhando pro céu, esperando o mundo acabar.', 'Mas o planeta *continuou girando*.', 'Devagar. Sozinho.', 'Como sempre girou.'];
+// sem o alto-falante (se a Duda guardou ele pra Nara), o Valdir tem que gritar
+export function valdirSpeech() {
+  if (!state.flags.megaGone) return VALDIR_SPEECH;
+  return ['ATENÇÃO, FAMÍLIA GIRA!', '(Sem o alto-falante, quase ninguém ouve.)', 'A FOLGA DE DOMINGO FOI... *REMANEJADA*!', 'Alguém viu meu alto-falante?'];
+}
+export function strikeLines() {
+  const n = state.support.size, L = [...STRIKE_LINES];
+  if (state.flags.mega === 'nara') L.splice(1, 0, 'A Nara subiu num caixote com o alto-falante do Valdir e disse uma palavra só: *"Parou."*');
+  if (n > 0) L.splice(L.length - 3, 0, `${n} ${n === 1 ? 'pessoa tinha dito' : 'pessoas tinham dito'} que paravam junto. E pararam. Junto com um monte de gente que ninguém tinha chamado.`);
+  return L;
+}
 
 function keyFor() { return state.sunday ? 'sunday' : state.strike ? 'strike' : state.day; }
 function pickDay(obj, k) {
@@ -180,6 +191,12 @@ function pickDay(obj, k) {
   return obj[1];
 }
 export function npcLines(n) {
+  // no sétimo dia a Nara conta quem a Duda trouxe durante a semana
+  if (n.id === 'nara' && state.day === 7 && state.week === 1 && !state.strike && !state.sunday && state.support.size > 0) {
+    const k = state.support.size, L = [...n.lines[7]];
+    L.splice(2, 0, `E olha: ${k} ${k === 1 ? 'pessoa já disse' : 'pessoas já disseram'} que param se a gente parar. Isso foi você.`);
+    return L;
+  }
   if (n.id === 'nara' && state.week > 1 && state.day === 1 && !state.sunday) return ['Mais uma segunda.', 'A pergunta continua de pé. A gente é que não.'];
   if (n.news) { const h = headline(); return [...(pickDay(n.lines, keyFor()) || []), 'Manchete de hoje: ' + h[0], h[1]]; }
   return pickDay(n.lines, keyFor());

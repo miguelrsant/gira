@@ -72,12 +72,46 @@ button:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
 .bar i { position: absolute; inset: 0 auto 0 0; width: 0%; background: var(--orange); }
 .barlabel { margin-top: 4px; font-size: 15px; display: flex; justify-content: space-between; }
 #stopped {
-  position: absolute; top: calc(124px + env(safe-area-inset-top, 0px)); left: calc(18px + env(safe-area-inset-left, 0px));
+  position: absolute; top: calc(150px + env(safe-area-inset-top, 0px)); left: calc(18px + env(safe-area-inset-left, 0px));
   font-family: var(--font-label); font-size: 12px; letter-spacing: .08em; padding: 5px 10px;
   background: var(--ink); color: var(--paper); transform: rotate(-2deg); opacity: 0; transition: opacity .3s;
   pointer-events: none;
 }
 #stopped.on { opacity: 1; }
+
+.bar.animo { height: 8px; margin-top: 6px; }
+.bar.animo i { background: var(--green); transition: width .4s; }
+.bar.animo.low i { background: var(--red); }
+#respiro {
+  position: absolute; left: 50%; top: calc(96px + env(safe-area-inset-top, 0px)); transform: translateX(-50%) rotate(1deg);
+  padding: 6px 14px 8px; font-size: 16px; text-align: center; opacity: 0; transition: opacity .3s; pointer-events: none; min-width: 200px;
+}
+#respiro.on { opacity: 1; }
+#respiro b { font-family: var(--font-label); font-size: 11px; background: var(--green); border: 2px solid var(--ink); padding: 1px 6px; margin-right: 4px; }
+#respiro small { color: var(--muted); font-size: 14px; }
+#respiro .bar { height: 7px; margin-top: 5px; }
+#respiro .bar i { background: var(--green); }
+body.talking #respiro { opacity: 0; }
+/* cartão de objetivo: a história do dia, pedidos aceitos, a meta do Valdir */
+#quests {
+  position: absolute; top: calc(186px + env(safe-area-inset-top, 0px)); left: calc(14px + env(safe-area-inset-left, 0px));
+  width: 250px; display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+}
+body.talking #quests { opacity: 0; transition: opacity .15s; }
+.quest { padding: 7px 12px 9px; animation: qin .45s cubic-bezier(.2, .9, .3, 1.3) both; animation-delay: calc(var(--i) * 80ms); }
+.quest:nth-child(even) { transform: rotate(.8deg); }
+.quest:nth-child(odd) { transform: rotate(-.6deg); }
+@keyframes qin { from { opacity: 0; translate: -24px 0; } }
+.quest .qk { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-label); font-size: 10px; letter-spacing: .1em; color: var(--muted); }
+.quest .qk span { background: var(--blue); color: #fff; padding: 1px 6px; border: 2px solid var(--ink); }
+.quest.main .qk span { background: var(--yellow); color: var(--ink); }
+.quest .qt { font-family: var(--font-label); font-size: 15px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.quest.low .qt { color: var(--red); animation: qpulse .5s ease-in-out infinite alternate; }
+@keyframes qpulse { to { scale: 1.18; } }
+.quest .qtitle { margin-top: 4px; font-family: var(--font-title); font-size: 15px; line-height: 1.05; }
+.quest .qtext { font-size: 16px; line-height: 1.12; margin-top: 2px; }
+.quest:not(.main) .qtitle { font-size: 13px; }
+.quest:not(.main) .qtext { font-size: 15px; color: #4b5658; }
 
 .side { position: absolute; right: calc(14px + env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 14px; }
 .side.top { top: calc(14px + env(safe-area-inset-top, 0px)); }
@@ -135,6 +169,8 @@ body.talking #hint.on { opacity: 0; transition: opacity .15s; }
 }
 .marker.on { display: block; }
 .marker.quest { background: var(--yellow); }
+.marker.side { background: var(--blue); color: #fff; }
+.marker.goal { width: 30px; height: 30px; line-height: 26px; font-size: 17px; }
 .marker.read { background: #dff1ee; border-radius: 50%; }
 .marker span { display: block; transform: rotate(-45deg); }
 .marker.read span { transform: none; }
@@ -277,11 +313,17 @@ body.touch #hint { max-width: calc(100vw - 200px); font-size: 15px; }
   #dialog.on { animation: dlgInM .3s cubic-bezier(.2, .9, .3, 1.25); }
   @keyframes dlgInM { from { transform: translateY(24px); opacity: 0; } }
   #prompt { bottom: calc(110px + env(safe-area-inset-bottom, 0px)); font-size: 12px; }
-  #stopped { top: calc(116px + env(safe-area-inset-top, 0px)); }
+  #stopped { top: calc(136px + env(safe-area-inset-top, 0px)); }
+  #quests { top: calc(170px + env(safe-area-inset-top, 0px)); width: min(220px, calc(100vw - 100px)); gap: 7px; }
+  .quest { padding: 5px 9px 7px; }
+  .quest .qtitle { font-size: 13px; }
+  .quest .qtext { font-size: 14px; }
+  .quest:not(.main) .qtext { display: none; }
   #prompt { left: calc(50% - 30px); }
   #hint, body.touch #hint { left: 16px; right: 76px; transform: none; max-width: none; bottom: calc(98px + env(safe-area-inset-bottom, 0px)); font-size: 15px; }
   /* com o aviso de conversa na tela, a dica sobe para não cobrir o aviso */
   #prompt.on ~ #hint { bottom: calc(158px + env(safe-area-inset-bottom, 0px)); }
   #toast { top: calc(96px + env(safe-area-inset-top, 0px)); }
+  #respiro { top: auto; bottom: calc(200px + env(safe-area-inset-bottom, 0px)); font-size: 14px; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } #start { transform: none; opacity: 1; } }

@@ -33,6 +33,8 @@ import { initDynamics, updateDynamics } from './play/dynamics.js';
 import { refreshTasks, updateHud } from './play/hud.js';
 import { initInput } from './play/input.js';
 import { updateOverlays } from './play/overlays.js';
+import { MISSION_DEBUG, updateMissions } from './play/missions.js';
+import { updateMood } from './play/mood.js';
 import { initPages, PAGEOBJ, updatePages } from './play/pages.js';
 import { heroGesture, initPlayer, placePlayer, player, setHeroMood, SKYF, stepPlayer } from './play/player.js';
 import { render } from './play/render.js';
@@ -51,6 +53,8 @@ function frame() {
   if (state.mode === 'title') updateTitle(dt);
   stepPlayer(dt);
   updateGame(dt);
+  updateMissions(dt);
+  updateMood(dt);
   updateActors(dt, t);
   updatePages(dt, t);
   updateDynamics(dt, t);
@@ -123,4 +127,5 @@ window.__gira = {
   talk(id) { startTalk(actor(id)); },
   mood(m) { setHeroMood(m); },
   gesture(g) { heroGesture(g); },
+  missions: MISSION_DEBUG,
 };

@@ -5,7 +5,8 @@ import { camera } from '../core/renderer.js';
 import { INTERACT } from '../world/places.js';
 import { npcBubble } from '../story/npcs.js';
 import { ACTORS } from './actors.js';
-import { edgeOf, headPos, IMARK, meEmote, screenOf } from './bubbles.js';
+import { edgeOf, GMARK, headPos, IMARK, meEmote, screenOf } from './bubbles.js';
+import { bubbleOf, goals, questOf } from './missions.js';
 import { target } from './director.js';
 import { player } from './player.js';
 import { state } from './state.js';
@@ -24,19 +25,23 @@ export function updateOverlays(dt) {
     a.bubbleEl.classList.toggle('on', showB);
     a.bubbleEl.classList.toggle('click', showB && a.dist < 3.2);
     if (showB) {
-      const txt = npcBubble(n); if (a.bubbleEl.textContent !== txt) a.bubbleEl.textContent = txt;
+      const txt = bubbleOf(n.id) || npcBubble(n); if (a.bubbleEl.textContent !== txt) a.bubbleEl.textContent = txt;
       const sc = clamp(1.25 - a.dist / 12, 0.62, 1.1);
       a.bubbleEl.style.transform = `translate(${s[0].toFixed(1)}px, ${s[1].toFixed(1)}px) translate(-50%, -100%) translateY(-12px) scale(${sc.toFixed(3)})`;
     }
-    // marcador: "…" para quem ainda não falou hoje, "!" para a Nara no 7º dia (sempre visível, preso na borda)
-    const quest = n.id === 'nara' && state.day === 7 && !state.strike && !state.sunday && !state.talked.has('nara') && state.mode === 'play';
+    // marcador: "…" para quem ainda não falou hoje, "!" para quem tem missão (história: amarelo, sempre visível,
+    // preso na borda; pedido: azul), e a Nara no 7º dia
+    const q7 = n.id === 'nara' && state.day === 7 && !state.strike && !state.sunday && !state.talked.has('nara') && state.mode === 'play';
+    const qk = state.mode === 'play' ? (q7 ? 'main' : questOf(n.id)) : null;
+    const quest = qk === 'main', side = qk === 'side' || qk === 'offer';
     let ms = s;
-    if (quest && !ms) ms = edgeOf(headPos(a, _ov.p), _sc);
-    const showM = !!ms && !showB && !talkingNow && ((quest) || (a.dist < 26 && !state.talked.has(n.id) && !a.pet && playing));
+    if ((quest || qk === 'side') && !ms) ms = edgeOf(headPos(a, _ov.p), _sc);
+    const showM = !!ms && !showB && !talkingNow && (quest || qk === 'side' || ((side || !state.talked.has(n.id)) && a.dist < 26 && (!a.pet || side) && playing));
     a.markerEl.classList.toggle('on', showM);
     a.markerEl.classList.toggle('quest', quest);
+    a.markerEl.classList.toggle('side', side);
     if (showM) {
-      a.markerEl.firstChild.textContent = quest ? '!' : '…';
+      a.markerEl.firstChild.textContent = qk ? '!' : '…';
       const bob = Math.sin(now / 300 + a.idx) * 4;
       a.markerEl.style.transform = `translate(${ms[0].toFixed(1)}px, ${(ms[1] - 10 + bob).toFixed(1)}px) translate(-50%, -100%) rotate(45deg)`;
     }
@@ -49,6 +54,18 @@ export function updateOverlays(dt) {
   const pe = meEmote.t > 0 && playing ? screenOf(_ov.p.copy(player.pos).addScaledVector(player.d, player.ch.st.pose === 'ground' ? 1.15 : 1.85), _sc) : null;
   meEmote.el.classList.toggle('on', !!pe);
   if (pe) { const k = Math.min(1, (2.2 - meEmote.t) * 6); meEmote.el.style.transform = `translate(${pe[0].toFixed(1)}px, ${pe[1].toFixed(1)}px) translate(-50%, -100%) scale(${k.toFixed(3)})`; }
+  // coisas para achar e lugares para chegar (missões)
+  const G = state.mode === 'play' && !state.dialog ? goals() : [];
+  for (let i = 0; i < GMARK.length; i++) {
+    const g = G[i], el = GMARK[i];
+    let gs = g ? screenOf(g.pos, _sc) : null;
+    if (g && !gs && g.main) gs = edgeOf(g.pos, _sc);
+    el.classList.toggle('on', !!gs);
+    if (!gs) continue;
+    el.classList.toggle('side', !g.main);
+    const bob = Math.sin(now / 280 + i) * 4;
+    el.style.transform = `translate(${gs[0].toFixed(1)}px, ${(gs[1] - 10 + bob).toFixed(1)}px) translate(-50%, -100%) rotate(45deg)`;
+  }
   // placas e objetos ainda não lidos por perto
   let k = 0;
   if (state.mode === 'play' && !state.dialog) {

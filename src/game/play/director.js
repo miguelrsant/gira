@@ -6,13 +6,15 @@ import { ctxDir } from '../world/kit.js';
 import { DISTRICTS, INTERACT, SPOTS } from '../world/places.js';
 import { groundAt } from '../world/terrain.js';
 import { headline } from '../story/news.js';
-import { npcLines, STRIKE_LINES, VALDIR_SPEECH } from '../story/npcs.js';
+import { npcLines, strikeLines, valdirSpeech } from '../story/npcs.js';
 import { actor, ACTORS, placeActor } from './actors.js';
 import { sfx } from './audio.js';
 import { showEmote } from './bubbles.js';
 import { cam, pickSide } from './camera.js';
 import { openDialog } from './dialog.js';
 import { hideCard, hintOnce, refreshTasks, setCardText, setHint, showCard, toast, togglePanel } from './hud.js';
+import { dayTitle, mainPending, missionTalk, runMissionTalk } from './missions.js';
+import { respiroTalk, wakeLine } from './mood.js';
 import { player } from './player.js';
 import { state } from './state.js';
 
@@ -25,8 +27,12 @@ export async function startTalk(a) {
   if (a.pet === 'cat') { a.ch.st.sleep = false; a.ch.st.pose = 'sit'; sfx.meow(); }
   if (a.pet === 'dog') { sfx.bark(); a.ch.st.wag = 3; }
   const quest = n.id === 'nara' && state.day === 7 && !state.strike && !state.sunday;
-  const choice = await openDialog(n.name, n.tag, npcLines(n), { voice: n.voice, speaker: a.ch, choices: quest ? ['Parar com todo mundo', 'Melhor continuar andando'] : null });
+  // um passo de missão com essa pessoa vem antes da conversa do dia
+  const mt = !quest && !state.strike && !state.sunday ? missionTalk(n.id) : null;
+  const choice = mt ? await runMissionTalk(mt, a)
+    : await openDialog(n.name, n.tag, npcLines(n), { voice: n.voice, speaker: a.ch, choices: quest ? ['Parar com todo mundo', 'Melhor continuar andando'] : null });
   state.talked.add(n.id);
+  respiroTalk(n.id);
   a.ch.st.happy = 0.9;
   if (a.pet === 'cat') { a.ch.st.sleep = true; a.ch.st.pose = 'sleep'; }
   if (a.pet === 'dog' && !state.strike) { state.follow = 80; hintOnce('dog', 'O Caramelo resolveu te acompanhar um pouco.', 4000); }
@@ -58,7 +64,8 @@ async function endDay() {
   await wait(2300);
   if (lastDay) { state.week++; state.day = 1; } else state.day++;
   state.walked = 0; state.talked.clear(); state.declined = false;
-  setCardText(`DIA ${state.day} DE 7 · SEMANA ${state.week}`, DAYS[state.day - 1], state.day === 7 ? '07:00. Hoje é folga, né?' : '07:00. Meta: 1 volta.');
+  const mtitle = dayTitle(state.day);
+  setCardText(`DIA ${state.day} DE 7 · SEMANA ${state.week}`, DAYS[state.day - 1], state.day === 7 ? '07:00. Hoje é folga, né?' : `07:00. A Duda ${wakeLine(state.day)}.` + (mtitle ? ` Hoje: ${mtitle.toLowerCase()}.` : ''));
   await wait(1700);
   hideCard();
   state.mode = 'play';
@@ -68,7 +75,8 @@ async function endDay() {
     state.mode = 'cutscene';
     sfx.bell();
     const v = actor('valdir');
-    await openDialog('SEU VALDIR · ALTO-FALANTE', v.n.tag, VALDIR_SPEECH, { voice: v.n.voice, speaker: v.ch });
+    const gone = state.flags.megaGone;
+    await openDialog(gone ? 'SEU VALDIR · GRITANDO' : 'SEU VALDIR · ALTO-FALANTE', v.n.tag, valdirSpeech(), { voice: v.n.voice, speaker: v.ch });
     state.mode = 'play';
     setHint('A Nara quer falar com você na padaria Pão de Cada Dia.', 6500);
     ACTORS.forEach((a, i) => { if (!a.pet && a.id !== 'valdir' && a.dist < 30) { a.reactT = 0.3 + i * 0.12; a.reactTxt = i % 2 ? '…' : '#@!'; } });
@@ -109,7 +117,7 @@ export async function startStrike() {
   cam.shot = { kind: 'orbit', t: 0, th0: Math.atan2(player.d.z, player.d.x), ph0: clamp(Math.asin(player.d.y), -0.75, 0.95) };
   state.autoSun = true; state.sunP = clamp(state.walked / LAP, 0, 1);
   await wait(3400);
-  await openDialog('…', '#7d8a88', STRIKE_LINES, { voice: 160 });
+  await openDialog('…', '#7d8a88', strikeLines(), { voice: 160 });
   await wait(900);
   // domingo de verdade: o céu volta devagar para uma tarde clara
   state.sunday = true; state.strike = false; state.autoSun = false; state.sunP = 0.6;
@@ -137,12 +145,17 @@ function sundayPoses() {
   }
 }
 let playT = 0, distTick = 0;
+export const EXTRA = 1.4;   // até onde a hora extra vai (em voltas)
 export function updateGame(dt) {
   if (state.mode !== 'play') { target = null; return; }
   playT += dt;
   findTarget();
   if (target && target.kind === 'npc') hintOnce('talk', IS_TOUCH ? 'Toque no balão (ou no aviso embaixo) para conversar.' : 'Aperte E para conversar.', 4500);
-  if (!state.sunday && !state.strike && state.walked >= LAP && !state.dialog) endDay();
+  // a volta acabou mas a história do dia não: hora extra (até um limite, que ninguém é de ferro)
+  if (!state.sunday && !state.strike && state.walked >= LAP && !state.dialog) {
+    if (!mainPending() || state.walked >= LAP * EXTRA) endDay();
+    else hintOnce('extra' + state.week + state.day, 'A volta do dia acabou, mas a história de hoje não. No planeta isso tem nome: hora extra.', 6000);
+  }
   distTick -= dt; if (distTick < 0) { distTick = 0.3; updateDistrict(); }
   if (state.idleT > 20 && !state.sunday) hintOnce('idle', 'Parada, o dia não passa. Nem o sol.', 5000);
   if (playT > 45) hintOnce('explore', 'Dá pra ir pra qualquer lugar: praia, parque, morro, fábrica. E tem 7 folhas de domingo escondidas pelo planeta.', 7500);

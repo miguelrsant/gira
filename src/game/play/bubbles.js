@@ -15,6 +15,8 @@ export function makeOverlay(a) {
 export const meEmote = { el: document.createElement('div'), t: 0 };
 meEmote.el.className = 'emote'; bubblesLayer.appendChild(meEmote.el);
 export const IMARK = []; for (let i = 0; i < 4; i++) { const el = document.createElement('div'); el.className = 'marker read'; el.appendChild(document.createElement('span')); el.firstChild.textContent = '?'; bubblesLayer.appendChild(el); IMARK.push(el); }
+// metas das missões (coisas para achar, lugares para chegar)
+export const GMARK = []; for (let i = 0; i < 3; i++) { const el = document.createElement('div'); el.className = 'marker quest goal'; el.appendChild(document.createElement('span')); el.firstChild.textContent = '!'; bubblesLayer.appendChild(el); GMARK.push(el); }
 export function showEmote(a, txt) {
   if (a) { a.emoteEl.textContent = txt; a.emoteT = 2.2; }
   else { meEmote.el.textContent = txt; meEmote.t = 2.2; }
