@@ -366,7 +366,7 @@ body.touch #hint { max-width: calc(100vw - 200px); font-size: 15px; }
 
 <div id="dialog">
   <div id="dport" aria-hidden="true"></div>
-  <div id="dname">LIA</div>
+  <div id="dname">DUDA</div>
   <div id="dbox"><span id="dtext"></span>
     <div id="choices"></div>
     <button id="dnext" aria-label="Avançar"><svg viewBox="0 0 26 26"><path d="M7 3l14 10L7 23z" fill="#66bde6" stroke="#373f42" stroke-width="2" stroke-linejoin="round"/></svg></button>
@@ -413,6 +413,8 @@ const sat = (x) => clamp(x, 0, 1);
 const lerp = (a, b, t) => a + (b - a) * t;
 const smooth = (t) => t * t * (3 - 2 * t);
 const sstep = (a, b, x) => smooth(sat((x - a) / (b - a)));
+// diferença entre dois ângulos, sempre entre -π e π
+const angDiff = (a, b) => { let d = (a - b) % (2 * Math.PI); if (d > Math.PI) d -= 2 * Math.PI; if (d < -Math.PI) d += 2 * Math.PI; return d; };
 const easeOutBack = (t, s = 1.70158) => 1 + (s + 1) * Math.pow(t - 1, 3) + s * Math.pow(t - 1, 2);
 const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
 const easeInOut = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -1002,6 +1004,11 @@ class Geo {
       // cor
       if (o.cf) { const c = o.cf(x, y, z, nx, ny, nz); C[k * 3] = Math.round(c.r * 255); C[k * 3 + 1] = Math.round(c.g * 255); C[k * 3 + 2] = Math.round(c.b * 255); }
       else { C[k * 3] = cr; C[k * 3 + 1] = cg; C[k * 3 + 2] = cb; }
+      // ossos: um só (peça rígida) ou vários pesos por vértice (skinF -> [osso, peso, osso, peso, ...])
+      if (this.skin) {
+        if (o.skinF) { const sw = o.skinF(x, y, z); for (let j = 0; j < 4; j++) { this.SI[k * 4 + j] = sw[j * 2] || 0; this.SW[k * 4 + j] = sw[j * 2 + 1] || 0; } }
+        else { this.SI[k * 4] = o.bone || 0; this.SW[k * 4] = 1; }
+      }
       // padrão (coordenadas planares locais, em unidades do mundo)
       if (sway) { A[k * 3] = sway * clamp(y / swayH, 0, 1.4); A[k * 3 + 1] = 0; }
       else if (pat) {
@@ -1022,7 +1029,6 @@ class Geo {
       N[k * 3] = nx; N[k * 3 + 1] = ny; N[k * 3 + 2] = nz;
       if (uv && s.uv) { T[k * 2] = uv[0] + s.uv[i * 2] * (uv[2] - uv[0]); T[k * 2 + 1] = uv[1] + s.uv[i * 2 + 1] * (uv[3] - uv[1]); }
       else { T[k * 2] = WHITE_UV[0]; T[k * 2 + 1] = WHITE_UV[1]; }
-      if (this.skin) { this.SI[k * 4] = o.bone || 0; this.SW[k * 4] = 1; }
     }
     const I = this.I;
     if (det >= 0) for (let i = 0; i < ni; i++) I[this.ic + i] = s.idx[i] + v0;
@@ -2528,7 +2534,7 @@ function addLandmarks() {
     interact(c, 4.9, 1.2, 0.4, { name: 'ORELHÃO', lines: ['Você tira o fone do gancho.', 'Gravação: "Sua ligação é muito importante para nós. Continue andando."'] });
     SPOTS.plaza = c;
   }
-  // casa da Lia
+  // casa da Duda
   {
     const i = nearestSample(MAIN, 4, -18), c = besideRoad(MAIN, i, 1, 4.6 + 2.0, 0.5);
     const hc = subCtx(c, 0, 0, -1.0);
@@ -3261,7 +3267,7 @@ function drawPetFace(g, f, k) {
   }
 }
 const _faceDone = new Map();
-// reuse: quadro de um rosto antigo que pode ser redesenhado quando o atlas enche (troca de roupa da Lia)
+// reuse: quadro de um rosto antigo que pode ser redesenhado quando o atlas enche (troca de roupa da Duda)
 function faceSheet(f, pet, reuse) {
   const key = JSON.stringify(f) + (pet ? 'p' : '');
   if (_faceDone.has(key)) return _faceDone.get(key);
@@ -3519,9 +3525,11 @@ function makeChar(spec) {
   mk(foreR, 0, -P.fore - 0.03 * P.ag, 0.0);              // 15 cartaz da greve
   // ---- tronco ----
   const ky = (P.shY - P.waist) / 0.35, w = P.tw, b = P.belly, cst = P.chest, shd = P.shoulders || 0;
-  const prof = [[0.0, -0.12], [0.137, -0.12], [0.14, -0.05], [0.134 + b * 0.8, 0.04], [0.14 + b, 0.1], [0.148 + cst + b * 0.4, 0.18], [0.156 + cst * 0.6, 0.24], [0.16 + shd, 0.3], [0.15 + shd, 0.34], [0.112 + shd * 0.5, 0.375], [0.06, 0.395], [0.0, 0.4]];
+  const prof = [[0.0, -0.12], [0.137, -0.12], [0.14, -0.05], [0.134 + b * 0.8, 0.04], ...(bot.kind === 'overall' ? [[0.136 + b * 0.88, 0.064], [0.137 + b * 0.9, 0.076]] : []), [0.14 + b, 0.1], [0.148 + cst + b * 0.4, 0.18], [0.156 + cst * 0.6, 0.24], [0.16 + shd, 0.3], [0.15 + shd, 0.34], [0.112 + shd * 0.5, 0.375], [0.06, 0.395], [0.0, 0.4]];
   const torsoC = dress ? tc : (top.kind === 'apron' ? tc : tc);
-  { const tg = latheG(prof.map(([r, y]) => [r * w, y * ky])); add(tg, TM(0, P.waist, 0, 1, 1, P.td), torsoC, 3, BI.torso); tg.dispose(); }
+  // macacão: a barriga e as costas até a cintura são do tecido do macacão (nada de camiseta aparecendo por baixo)
+  const ovr = bot.kind === 'overall' ? { cf: (x, y) => (y < P.waist + 0.07 * ky ? C(bc) : C(torsoC)) } : null;
+  { const tg = latheG(prof.map(([r, y]) => [r * w, y * ky])); add(tg, TM(0, P.waist, 0, 1, 1, P.td), torsoC, 3, BI.torso, ovr); tg.dispose(); }
   // pescoço
   { const ng = taperG(0.042 * hr / 0.15, 0.045 * hr / 0.15, P.neck - P.shY + 0.06); add(ng, TM(0, P.shY - 0.02, 0.0), skin, 1, BI.torso); ng.dispose(); }
   if (top.kind === 'polo' || top.kind === 'shirt' || top.kind === 'blazer') add(torG(1, 0.32, 6, 14), TM(0, P.shY + 0.02, 0.005, 0.058, 0.058, 0.05, 0, Math.PI / 2 + 0.25), top.collar || (top.kind === 'polo' ? tc : '#f4f4ef'), 6, BI.torso);
@@ -3576,7 +3584,13 @@ function makeChar(spec) {
   if (bot.kind === 'skirt' || dress) {
     const hem = P.knee + (dress ? -0.02 : 0.06), H0 = P.waist + 0.04 - hem;
     const sk = latheG([[0.0, H0 + 0.01], [0.132 * w, H0], [0.145 * w, H0 * 0.7], [0.175 * w, H0 * 0.3], [0.205 * w, 0.02], [0.2 * w, 0.0], [0.0, 0.0]].reverse().map(([r, y]) => [r, y]));
-    add(sk, TM(0, hem, 0, 1, 1, 0.82), dress ? tc : bc, 4, BI.root); sk.dispose();
+    // a barra acompanha as pernas (perto do quadril fica presa ao corpo): a coxa nunca fura a saia
+    const span = P.hip + 0.03 - hem;
+    const skinF = (x, y) => {
+      const k = sstep(0, 1, (P.hip + 0.03 - y) / span) * 0.82, sL = sstep(-0.075, 0.075, x);
+      return [BI.root, 1 - k, BI.legL, k * sL, BI.legR, k * (1 - sL)];
+    };
+    add(sk, TM(0, hem, 0, 1, 1, 0.82), dress ? tc : bc, 4, BI.root, { skinF }); sk.dispose();
   }
   if (bot.kind === 'overall') {
     add(GEO.box, TM(0, P.waist + 0.12 * ky, 0.095 * P.td / 0.7, 0.2 * w, 0.2 * ky, 0.03), bc, 4, BI.torso);
@@ -3642,6 +3656,8 @@ function makeChar(spec) {
   if (H.bun) { add(sphG(12, 8), HM(0, hr * 0.98, -hr * 0.55, hr * 0.42, hr * 0.38, hr * 0.42), hcC, 2, BI.head); add(torG(1, 0.2, 5, 12), HM(0, hr * 0.8, -hr * 0.42, hr * 0.28, hr * 0.28, hr * 0.28, 0, 0.6), spec.hair.band || '#c25959', 6, BI.head); }
   if (H.buns) for (const s of [1, -1]) add(sphG(12, 8), HM(s * hr * 0.66, hr * 0.8, -hr * 0.2, hr * 0.36, hr * 0.36, hr * 0.36), hcC, 2, BI.head);
   if (H.afro) add(blobG(4, LOW ? 1 : 2), HM(0, hr * 0.42, -hr * 0.28, hr * 1.42, hr * 1.25, hr * 1.36), hcC, 2, BI.head);
+  // faixa na testa, por baixo do black power
+  if (H.afro && spec.hair.band) add(torG(1, 0.13, 6, 22), HM(0, hr * 0.4, hr * 0.02, hr * 1.02, hr * 1.02, hr * 1.02, 0, Math.PI / 2 - 0.42), spec.hair.band, 6, BI.head);
   if (H.puff) { add(blobG(2, LOW ? 1 : 2), HM(0, hr * 1.1, -hr * 0.5, hr * 0.78, hr * 0.7, hr * 0.78), hcC, 2, BI.head); add(torG(1, 0.18, 5, 14), HM(0, hr * 0.8, -hr * 0.36, hr * 0.44, hr * 0.44, hr * 0.44, 0, 0.55), spec.hair.band || '#f3c258', 6, BI.head); }
   if (H.sides) for (const s of [1, -1]) add(blobG(6, 1), HM(s * hr * 0.92, hr * 0.12, -hr * 0.3, hr * 0.26, hr * 0.32, hr * 0.5), hcC, 2, BI.head);
   if (H.tail === 'pony') {
@@ -3772,7 +3788,7 @@ function poseChar(ch, dt) {
   const kSm = 1 - Math.exp(-dt * 9);
   const wT = clamp(st.speed / WALK, 0, 1), rT = clamp((st.speed - WALK) / (RUN - WALK), 0, 1);
   st.w = lerp(st.w, wT, kSm); st.run = lerp(st.run, rT, kSm);
-  const stride = lerp(0.52, 0.8, st.run) * (P.hip / 0.8);
+  const stride = lerp(0.62, 0.92, st.run) * (P.hip / 0.8);
   st.phase += st.speed * dt * Math.PI / stride;
   const w = st.w * (1 - st.air), run = st.run, ph = st.phase, s1 = Math.sin(ph), c1 = Math.cos(ph);
   const tired = st.tired;
@@ -3804,21 +3820,24 @@ function poseChar(ch, dt) {
     B[4].rotation.x = B[6].rotation.x = -0.12;
     B[3].rotation.z = 0.22; B[5].rotation.z = -0.22;
   } else {
-    // em pé: pernas e balanço da caminhada
-    const legA = lerp(0.5, 0.88, run) * w, kneeA = lerp(0.85, 1.35, run) * w;
-    B[7].rotation.x = -s1 * legA; B[10].rotation.x = s1 * legA;
-    B[8].rotation.x = 0.06 * w + Math.max(0, c1) * kneeA; B[11].rotation.x = 0.06 * w + Math.max(0, -c1) * kneeA;
-    B[9].rotation.x = -(B[7].rotation.x + B[8].rotation.x) * 0.55; B[12].rotation.x = -(B[10].rotation.x + B[11].rotation.x) * 0.55;
-    B[0].position.y += (Math.abs(c1) - 0.6) * lerp(0.035, 0.06, run) * w - 0.012 * w - 0.03 * run;
+    // em pé: passinhos curtos, o joelho sobe na passada e o peso troca de um pé para o outro
+    const legA = lerp(0.34, 0.6, run) * w, kneeA = lerp(0.95, 1.3, run) * w;
+    const swL = Math.max(0, c1), swR = Math.max(0, -c1);
+    B[7].rotation.x = -s1 * legA - swL * 0.1 * w; B[10].rotation.x = s1 * legA - swR * 0.1 * w;
+    B[8].rotation.x = 0.08 * w + swL * kneeA; B[11].rotation.x = 0.08 * w + swR * kneeA;
+    B[9].rotation.x = -(B[7].rotation.x + B[8].rotation.x) * 0.6; B[12].rotation.x = -(B[10].rotation.x + B[11].rotation.x) * 0.6;
+    B[0].position.y += (Math.abs(c1) - 0.6) * lerp(0.05, 0.07, run) * w - 0.012 * w - 0.03 * run;
+    B[0].position.x = -c1 * 0.012 * w * (1 - run * 0.5);
     B[1].rotation.y = -s1 * 0.12 * w;
+    B[1].rotation.z = c1 * 0.035 * w * (1 - run * 0.5);
     B[1].rotation.x = 0.03 * w + run * 0.2 + tired * 0.16 + (P.stoop || 0) + Math.sin(t * 1.7) * 0.012 * (1 - w);
     B[0].rotation.y = s1 * 0.07 * w;
     B[2].rotation.y = s1 * 0.09 * w;
     // braços
-    const armA = lerp(0.42, 0.95, run) * w * (1 - tired * 0.5);
+    const armA = lerp(0.5, 0.95, run) * w * (1 - tired * 0.5);
     B[3].rotation.x = s1 * armA; B[5].rotation.x = -s1 * armA;
-    B[4].rotation.x = -(0.18 + run * 1.15) * Math.max(w, 0.35) - 0.08;
-    B[6].rotation.x = -(0.18 + run * 1.15) * Math.max(w, 0.35) - 0.08;
+    B[4].rotation.x = -(0.2 + 0.25 * w + run * 0.95) * Math.max(w, 0.35) - 0.08 - Math.max(0, -s1) * 0.25 * w;
+    B[6].rotation.x = -(0.2 + 0.25 * w + run * 0.95) * Math.max(w, 0.35) - 0.08 - Math.max(0, s1) * 0.25 * w;
     const sway = Math.sin(t * 1.7) * 0.02 * (1 - w);
     B[3].rotation.z = 0.09 + sway + run * 0.12; B[5].rotation.z = -0.09 - sway - run * 0.12;
     // pulo / queda
@@ -4012,24 +4031,26 @@ const CAST = {
   tati: { body: 'f', skin: '#b97c57', hair: { style: 'braid', color: '#3d3330', band: '#66bde6' }, top: { kind: 'polo', color: '#de794e' }, bottom: { kind: 'pants', color: '#6b6f68' }, shoes: { kind: 'sneaker', color: '#8cc48c' }, acc: ['badge'], tired: 0.3, face: { bags: true, brows: 'worry' } },
 };
 
-// ---------------- Lia: guarda-roupa ----------------
+// ---------------- Duda (a protagonista): guarda-roupa ----------------
+// o primeiro item de cada lista é o visual de sempre dela: black power com faixa vermelha,
+// camiseta amarela, macacão azul, tênis branco de sola laranja e o relógio que conta os passos
 const OUTFIT_OPTS = {
-  hair: [['bob', '#2f3437', 'Chanel com franja'], ['pony', '#3d3330', 'Rabo de cavalo'], ['curly', '#5a4032', 'Cacheado'], ['buns', '#2f3437', 'Dois coquinhos'], ['afro', '#1f1d1c', 'Black power'], ['braid', '#9b4a3a', 'Trança ruiva'], ['short', '#c99a5b', 'Curtinho loiro'], ['long', '#29323d', 'Comprido']],
-  top: [['long', '#f1f0e8', 'Manga longa branca'], ['polo', '#de794e', 'Uniforme GIRA'], ['tee', '#66bde6', 'Camiseta azul'], ['hoodie', '#f3c258', 'Moletom amarelo'], ['tank', '#8cc48c', 'Regata verde'], ['cardigan', '#c25959', 'Casaquinho vermelho']],
-  bottom: [['skirt', '#c25959', 'Saia vermelha'], ['pants', '#4f6f8f', 'Calça jeans'], ['shorts', '#373f42', 'Bermuda'], ['skirt', '#66bde6', 'Saia azul'], ['overall', '#8a6fa8', 'Macacão']],
-  shoes: [['sneaker', '#f3c258', 'Tênis amarelo'], ['sneaker', '#f4f4ef', 'Tênis branco'], ['sandal', '#66bde6', 'Chinelo'], ['boot', '#8a5a3a', 'Bota']],
-  skin: [['#eec1a1', 'Pele 2'], ['#f6d7c3', 'Pele 1'], ['#d9a27c', 'Pele 3'], ['#b97c57', 'Pele 4'], ['#8d5a3b', 'Pele 5'], ['#6b4430', 'Pele 6']],
+  hair: [['afro', '#2b2522', 'Black power'], ['curly', '#3d3330', 'Cacheado'], ['puff', '#2b2522', 'Puff'], ['buns', '#2f3437', 'Dois coquinhos'], ['pony', '#3d3330', 'Rabo de cavalo'], ['braid', '#9b4a3a', 'Trança ruiva'], ['short', '#c99a5b', 'Curtinho loiro'], ['long', '#29323d', 'Comprido']],
+  top: [['tee', '#f3c258', 'Camiseta amarela'], ['tee', '#f4f4ef', 'Camiseta branca'], ['polo', '#de794e', 'Uniforme GIRA'], ['hoodie', '#8cc48c', 'Moletom verde'], ['tank', '#66bde6', 'Regata azul'], ['cardigan', '#c25959', 'Casaquinho vermelho']],
+  bottom: [['overall', '#3f8fb8', 'Macacão azul'], ['pants', '#4f6f8f', 'Calça jeans'], ['shorts', '#373f42', 'Bermuda'], ['skirt', '#c25959', 'Saia vermelha'], ['overall', '#8a6fa8', 'Macacão roxo']],
+  shoes: [['sneaker', '#f4f4ef', '#de794e', 'Tênis branco'], ['sneaker', '#f3c258', '#f4f4ef', 'Tênis amarelo'], ['sandal', '#66bde6', '#f4f4ef', 'Chinelo'], ['boot', '#8a5a3a', '#4b3a2f', 'Bota']],
+  skin: [['#a8693f', 'Pele 4'], ['#f6d7c3', 'Pele 1'], ['#eec1a1', 'Pele 2'], ['#d9a27c', 'Pele 3'], ['#8d5a3b', 'Pele 5'], ['#6b4430', 'Pele 6']],
 };
 let outfit = { hair: 0, top: 0, bottom: 0, shoes: 0, skin: 0 };
-try { const s = JSON.parse(localStorage.getItem('gira2-outfit')); if (s) outfit = Object.assign(outfit, s); } catch (e) {}
-function liaSpec() {
+try { const s = JSON.parse(localStorage.getItem('gira3-outfit')); if (s) outfit = Object.assign(outfit, s); } catch (e) {}
+function heroSpec() {
   const h = OUTFIT_OPTS.hair[outfit.hair % OUTFIT_OPTS.hair.length], t = OUTFIT_OPTS.top[outfit.top % OUTFIT_OPTS.top.length];
   const b = OUTFIT_OPTS.bottom[outfit.bottom % OUTFIT_OPTS.bottom.length], s = OUTFIT_OPTS.shoes[outfit.shoes % OUTFIT_OPTS.shoes.length];
   const skin = OUTFIT_OPTS.skin[outfit.skin % OUTFIT_OPTS.skin.length][0];
   return {
-    body: 'f', skin, hair: { style: h[0], color: h[1], band: '#f3c258' }, top: { kind: t[0], color: t[1] }, bottom: { kind: b[0], color: b[1] },
-    shoes: { kind: s[0], color: s[1], sole: '#f4f4ef' }, socks: b[0] === 'pants' || b[0] === 'overall' ? null : '#2f3437', acc: t[0] === 'polo' ? ['badge'] : ['strap'],
-    face: { bags: true, mouth: 'line' }, sign: 'PAREI!'
+    body: 'f', skin, hair: { style: h[0], color: h[1], band: h[0] === 'afro' ? '#c25959' : '#f3c258' }, top: { kind: t[0], color: t[1] }, bottom: { kind: b[0], color: b[1] },
+    shoes: { kind: s[0], color: s[1], sole: s[2] }, socks: b[0] === 'pants' || b[0] === 'overall' ? null : '#2f3437', acc: t[0] === 'polo' ? ['badge', 'watch'] : ['watch'],
+    face: { bags: true, mouth: 'smile' }, sign: 'PAREI!'
   };
 }
 
@@ -4143,7 +4164,7 @@ const NPCS = [
   { id: 'neide', name: 'DONA NEIDE', tag: '#5a8f73', voice: 210, cast: 'neide', at: { spot: 'neide', x: 1.75, z: 1.35 }, news: true,
     bubble: { 1: 'Olha o jornal!', 2: 'Manchete quentinha!', 3: 'Notícia boa? Tem não.', 4: 'Leva dois, paga dois.', 5: 'Extra! Extra! (mentira)', 6: 'Amanhã tem caderno de domingo!', 7: 'Caderno de domingo cancelado.', strike: 'Essa vai pra capa!', sunday: 'EDIÇÃO EXTRA!' },
     lines: {
-      1: D(['Bom dia, Lia! Jornal fresquinho.', 'Eu leio tudo antes de vender. É o único jeito de ler.']),
+      1: D(['Bom dia, Duda! Jornal fresquinho.', 'Eu leio tudo antes de vender. É o único jeito de ler.']),
       3: D(['Trinta anos de banca. Já vendi tudo quanto é notícia.', 'Nunca vendi uma que dissesse "hoje ninguém precisa andar".']),
       6: D(['Amanhã tem caderno de domingo!', 'Diz que vem com palavras cruzadas e um dia inteiro de folga. Se vier.']),
       sunday: D(['Olha que coisa linda: eu sentada lendo a minha própria banca.'])
@@ -4216,7 +4237,7 @@ const NPCS = [
   { id: 'tati', name: 'TATI', tag: '#de794e', voice: 250, cast: 'tati', walker: { s0: 0.36, speed: 2.0, lane: -0.95 }, bubble: WALKER_BUBBLES,
     lines: { 1: D(['Meu crachá diz "colaboradora". Meu joelho diz outra coisa.']), 3: D(['Hoje sonhei que eu parava. Acordei cansada do susto.']), sunday: D(['Sentei e o planeta não caiu. Quem diria.']) } },
 ];
-const LIA_INTRO = ['Acordei atrasada de novo...', 'Aqui o planeta só gira se a gente *andar*. Uma volta por dia, seis dias por semana.', 'No sétimo dia, dizem que tem *folga*. Bora.'];
+const INTRO_LINES = ['Acordei atrasada de novo...', 'Aqui o planeta só gira se a gente *andar*. Uma volta por dia, seis dias por semana.', 'No sétimo dia, dizem que tem *folga*. Bora.'];
 const VALDIR_SPEECH = ['Atenção, família GIRA!', 'A folga de domingo foi... *remanejada*.', 'Demanda alta. Vocês entendem. O planeta *não pode parar*!'];
 const STRIKE_LINES = ['Todo mundo parou.', 'O Seu Valdir ficou olhando pro céu, esperando o mundo acabar.', 'Mas o planeta *continuou girando*.', 'Devagar. Sozinho.', 'Como sempre girou.'];
 
@@ -4309,20 +4330,22 @@ function insideTall(p, pad = 0.3) {
 }
 const walkable = (d) => groundAt(d) > SEA - 0.12;
 
-// ================= Lia =================
+// ================= Duda (a protagonista) =================
 const player = {
   ch: null, d: V3(), fwd: V3(), vel: V3(), speed: 0, aspeed: 0, feet: 0, vy: 0, air: false,
   camFwd: V3(), lock: false, pos: V3(), head: V3(), actT: 0, lastStep: 0,
+  // referência dos controles: presa ao mundo enquanto a mesma direção continua apertada
+  ctrlFwd: V3(), ctrlOn: false, ctrlA: 0,
 };
-// quadro do céu, transportado junto com a Lia (nuvens passam por cima quando ela anda)
+// quadro do céu, transportado junto com a Duda (nuvens passam por cima quando ela anda)
 const SKYF = { x: V3(), z: V3(), shift: new THREE.Vector3() };
 function initPlayer() {
-  player.ch = makeChar(liaSpec());
+  player.ch = makeChar(heroSpec());
   scene.add(player.ch.rig);
   const sp = SPOTS.spawn;
   player.d.copy(sp.d);
   player.fwd.copy(sp.fwd).addScaledVector(sp.d, -sp.fwd.dot(sp.d)).normalize();
-  player.camFwd.copy(player.fwd);
+  player.camFwd.copy(player.fwd); player.ctrlFwd.copy(player.fwd);
   player.feet = groundAt(player.d);
   eastOf(player.d, SKYF.x); SKYF.z.crossVectors(SKYF.x, player.d).normalize();
   placePlayer();
@@ -4334,7 +4357,7 @@ function placePlayer() {
 }
 function rebuildPlayer() {
   const old = player.ch, st = old.st;
-  const spec = liaSpec(); spec.reuseSlot = old.slot;
+  const spec = heroSpec(); spec.reuseSlot = old.slot;
   const ch = makeChar(spec);
   for (const k of ['pose', 'act', 'sign', 'tired', 'seat']) ch.st[k] = st[k];
   disposeChar(old); scene.add(ch.rig); player.ch = ch; placePlayer();
@@ -4361,9 +4384,15 @@ function stepPlayer(dt) {
   const run = can && (keys.ShiftLeft || keys.ShiftRight || mag > 1.08);
   if (mag > 1) { ix /= mag; iy /= mag; mag = 1; }
   const cf = player.camFwd.addScaledVector(up, -player.camFwd.dot(up)).normalize();
-  const right = _m.a.crossVectors(cf, up).normalize();
-  const md = _m.md.set(0, 0, 0).addScaledVector(cf, iy).addScaledVector(right, ix);
   const moving = mag > 0.08;
+  // "para a direita" é a direita da câmera na hora em que se aperta; enquanto a direção não muda,
+  // a Duda segue reto e a câmera vira atrás dela (sem a câmera puxar a curva junto)
+  const ia = Math.atan2(ix, iy);
+  if (!moving) player.ctrlOn = false;
+  else if (!player.ctrlOn || Math.abs(angDiff(ia, player.ctrlA)) > 0.6) { player.ctrlOn = true; player.ctrlA = ia; player.ctrlFwd.copy(cf); }
+  const base = moving ? player.ctrlFwd.addScaledVector(up, -player.ctrlFwd.dot(up)).normalize() : cf;
+  const right = _m.a.crossVectors(base, up).normalize();
+  const md = _m.md.set(0, 0, 0).addScaledVector(base, iy).addScaledVector(right, ix);
   if (moving) {
     md.normalize();
     const f = player.fwd, ang = Math.atan2(_m.b.crossVectors(f, md).dot(up), f.dot(md));
@@ -4390,7 +4419,7 @@ function stepPlayer(dt) {
       SKYF.shift.x += (dx * SKYF.x.x + dy * SKYF.x.y + dz * SKYF.x.z) * 0.02;
       SKYF.shift.z += (dx * SKYF.z.x + dy * SKYF.z.y + dz * SKYF.z.z) * 0.02;
       _m.q.setFromUnitVectors(up, nd);
-      player.fwd.applyQuaternion(_m.q); player.vel.applyQuaternion(_m.q); player.camFwd.applyQuaternion(_m.q);
+      player.fwd.applyQuaternion(_m.q); player.vel.applyQuaternion(_m.q); player.camFwd.applyQuaternion(_m.q); player.ctrlFwd.applyQuaternion(_m.q);
       SKYF.x.applyQuaternion(_m.q);
       up.copy(nd);
       if (state.mode === 'play' && !state.sunday && !state.strike && !state.dialog) state.walked += moved;
@@ -4494,7 +4523,7 @@ function walkerPlace(a) {
 function updateWalker(a, dt) {
   let target = a.speed0;
   if (a.talking || state.strike || state.sunday || state.mode === 'cutscene' || state.mode === 'intro') target = 0;
-  // espera a Lia sair da frente
+  // espera a Duda sair da frente
   const rel = _w.a.copy(player.d).sub(a.d).multiplyScalar(R);
   const along = rel.dot(a.tan), side = rel.dot(_w.b.crossVectors(a.d, a.tan));
   if (along > 0.15 && along < 1.4 && Math.abs(side) < 0.6) target = 0;
@@ -4515,7 +4544,7 @@ function updateWalker(a, dt) {
   }
   a.ch.st.speed = a.speed;
 }
-// Caramelo: fica na frente da loja, passeia, e segue a Lia depois de uma conversa
+// Caramelo: fica na frente da loja, passeia, e segue a Duda depois de uma conversa
 function updateDog(a, dt) {
   const st = a.ch.st;
   let tgt = a.wander || a.home, keep = 0.35, maxSp = 2.6;
@@ -4576,7 +4605,7 @@ function updateActors(dt, t) {
     }
     if (n.id === 'bia' && a.dist < 6 && a.waved !== dayKey && state.mode === 'play' && !a.talking) { a.waved = dayKey; st.act = 'wave'; a.actT = 2.4; }
     if (a.actT > 0) { a.actT -= dt; if (a.actT <= 0) st.act = state.strike ? 'protest' : state.sunday ? null : a.baseAct; }
-    // olhar para a Lia
+    // olhar para a Duda
     const up = a.up || a.d;
     if (a.dist < 5 && a.vis && state.mode !== 'title') {
       _b.p.copy(ch.rig.position).addScaledVector(up, ch.pet ? 0.45 : ch.headY);
@@ -4938,8 +4967,8 @@ function refreshTasks() {
   $('tasks').innerHTML = tasks.map(([t, d]) => `<div class="task ${d ? 'done' : ''}"><span class="box">${d ? '✓' : ''}</span><span>${t}</span></div>`).join('');
   $('explore').innerHTML = DISTRICTS.map((z) => { const v = state.visited.has(z.name); return `<div class="task ${v ? 'done' : ''}"><span class="box">${v ? '✓' : ''}</span><span>${v ? z.name.toLowerCase().replace(/(^|\s)\S/g, (m) => m.toUpperCase()) : '???'}</span></div>`; }).join('');
   $('keys').innerHTML = IS_TOUCH
-    ? 'Arraste do lado esquerdo para andar (mais longe = correr). Arraste do lado direito para girar a câmera, com dois dedos para aproximar. Toque no balão para conversar.'
-    : '<kbd>WASD</kbd> ou setas: andar · <kbd>SHIFT</kbd>: correr · <kbd>ESPAÇO</kbd>: pular · arraste o mouse: câmera · roda: zoom · <kbd>E</kbd>: conversar · <kbd>1</kbd>–<kbd>6</kbd>: emoções · <kbd>M</kbd>: som';
+    ? 'Arraste do lado esquerdo para andar (mais longe = correr). A câmera acompanha sozinha; se quiser olhar em volta, arraste do lado direito, e use dois dedos para aproximar. Toque no balão para conversar.'
+    : '<kbd>WASD</kbd> ou setas: andar · <kbd>SHIFT</kbd>: correr · <kbd>ESPAÇO</kbd>: pular · a câmera acompanha sozinha (arrastar o mouse olha em volta) · roda: zoom · <kbd>E</kbd>: conversar · <kbd>1</kbd>–<kbd>6</kbd>: emoções · <kbd>M</kbd>: som';
 }
 let hintTimer = 0;
 function setHint(text, ms = 4000) { const h = $('hint'); h.textContent = text; h.classList.add('on'); clearTimeout(hintTimer); hintTimer = setTimeout(() => h.classList.remove('on'), ms); }
@@ -4976,7 +5005,7 @@ function renderWardrobe() {
 }
 function changeOutfit(k, d) {
   const n = OUTFIT_OPTS[k].length; outfit[k] = (outfit[k] + d + n) % n;
-  try { localStorage.setItem('gira2-outfit', JSON.stringify(outfit)); } catch (e) {}
+  try { localStorage.setItem('gira3-outfit', JSON.stringify(outfit)); } catch (e) {}
   rebuildPlayer(); renderWardrobe(); sfx.pop(); showEmote(null, '♥');
 }
 const EMOTES = ['!', '?', '♥', '…', 'zz', '#@!'];
@@ -5069,7 +5098,7 @@ function updateOverlays(dt) {
     a.emoteEl.classList.toggle('on', showE);
     if (showE) { const k = Math.min(1, (2.2 - a.emoteT) * 6); a.emoteEl.style.transform = `translate(${s[0].toFixed(1)}px, ${(s[1] - 22).toFixed(1)}px) translate(-50%, -100%) scale(${k.toFixed(3)})`; }
   }
-  // emoção da Lia
+  // emoção da Duda
   if (meEmoteT > 0) meEmoteT -= dt;
   const pe = meEmoteT > 0 && playing ? screenOf(_ov.p.copy(player.pos).addScaledVector(player.d, player.ch.st.pose === 'ground' ? 1.15 : 1.85), _sc) : null;
   meEmote.classList.toggle('on', !!pe);
@@ -5494,17 +5523,17 @@ async function startGame() {
   await wait(250);
   ld.classList.add('wipe'); sfx.whoosh(true);
   await wait(1000); ld.classList.add('hidden');
-  // a câmera dá a volta até a frente da Lia
+  // a câmera dá a volta até a frente da Duda
   await wait(350);
   const shot = cam.shot = { kind: 'intro', t: 0 };
   const t0 = performance.now();
   while (shot.t < 1.75 && performance.now() - t0 < 6000) await wait(50);
   $('hud').classList.add('on');
-  await openDialog('LIA', '#66bde6', LIA_INTRO, { voice: 260, speaker: player.ch });
+  await openDialog('DUDA', '#c25959', INTRO_LINES, { voice: 260, speaker: player.ch });
   cam.shot = null;
   state.mode = 'play'; document.body.classList.add('playing');
   refreshTasks();
-  setHint(IS_TOUCH ? 'Arraste à esquerda para andar · à direita para olhar em volta' : 'WASD para andar · Shift corre · arraste o mouse para olhar em volta', 7000);
+  setHint(IS_TOUCH ? 'Arraste à esquerda para andar · a câmera vai atrás de você' : 'WASD ou setas para andar · Shift corre · a câmera vai atrás de você', 7000);
 }
 $('start').onclick = () => startGame();
 
@@ -5530,7 +5559,8 @@ function followPose(P, L, dt) {
   }
   cam.dist = dt ? lerp(cam.dist, lim, 1 - Math.exp(-dt * (lim < cam.dist ? 16 : 2.2))) : lim;
   const D = cam.dist;
-  P.copy(head).addScaledVector(back, -D * cp).addScaledVector(up, D * sp + 0.15);
+  // quando um prédio puxa a câmera para perto, ela sobe um pouco para olhar por cima do cabelo
+  P.copy(head).addScaledVector(back, -D * cp).addScaledVector(up, D * sp + 0.15 + clamp(2.8 - D, 0, 1.6) * 0.38);
   L.copy(head).addScaledVector(back, 1.5).addScaledVector(up, 0.12 - cam.pitch * 0.4);
 }
 function talkPose(a, P, L) {
@@ -5585,7 +5615,7 @@ function pickSide(a) {
   cam.tmode = 'side';
   return s0;
 }
-// a câmera gira em arco de trás da Lia até a frente dela (sem atravessar a cabeça)
+// a câmera gira em arco de trás da Duda até a frente dela (sem atravessar a cabeça)
 function introPose(sh, P, L, dt) {
   const up = player.d, f = player.fwd, r = _c.w.crossVectors(up, f).normalize(), hd = player.head;
   const rel = _c.s.subVectors(cam.pos, hd);
@@ -5622,11 +5652,13 @@ function updateCamera(dt) {
   const fT = sh && sh.kind !== 'orbit' ? fovFor() - 9 : fovFor();
   cam.fov = lerp(cam.fov, fT, 1 - Math.exp(-dt * 3));
   if (Math.abs(camera.fov - cam.fov) > 0.05) { camera.fov = cam.fov; camera.updateProjectionMatrix(); }
-  // a câmera vai se ajeitando atrás da Lia quando ela anda
-  if (!sh && state.mode === 'play' && !state.dialog && player.aspeed > 1 && performance.now() - cam.lastDrag > 1500) {
+  // a câmera vai atrás da Duda sozinha: virou para a direita, a câmera vira junto
+  // (só não dá meia-volta quando ela vem andando na direção da câmera)
+  if (!sh && state.mode === 'play' && !state.dialog && player.aspeed > 0.6 && performance.now() - cam.lastDrag > 1200) {
     const up = player.d, cf = player.camFwd, f = player.fwd;
     const ang = Math.atan2(_c.a.crossVectors(cf, f).dot(up), cf.dot(f));
-    if (Math.abs(ang) < 1.3) cf.applyAxisAngle(up, ang * (1 - Math.exp(-dt * 0.9 * player.aspeed / WALK)));
+    const k = Math.abs(ang) > 2.1 ? 0 : 2.4 * clamp(player.aspeed / WALK, 0.3, 1.4);
+    cf.applyAxisAngle(up, ang * (1 - Math.exp(-dt * k)));
   }
   const P = _c.p, L = _c.l, Up = _c.u.copy(player.d);
   let rp = 9, rl = 12, ru = 6;
@@ -5915,7 +5947,7 @@ function frame() {
 }
 function teleport(d, heading = 0) {
   player.d.copy(d).normalize();
-  player.fwd.copy(headingVec(player.d, heading)); player.camFwd.copy(player.fwd); player.vel.set(0, 0, 0);
+  player.fwd.copy(headingVec(player.d, heading)); player.camFwd.copy(player.fwd); player.ctrlFwd.copy(player.fwd); player.vel.set(0, 0, 0);
   player.feet = groundAt(player.d);
   eastOf(player.d, SKYF.x); SKYF.z.crossVectors(SKYF.x, player.d).normalize();
   placePlayer(); snapCamera();

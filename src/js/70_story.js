@@ -19,24 +19,26 @@ const CAST = {
   tati: { body: 'f', skin: '#b97c57', hair: { style: 'braid', color: '#3d3330', band: '#66bde6' }, top: { kind: 'polo', color: '#de794e' }, bottom: { kind: 'pants', color: '#6b6f68' }, shoes: { kind: 'sneaker', color: '#8cc48c' }, acc: ['badge'], tired: 0.3, face: { bags: true, brows: 'worry' } },
 };
 
-// ---------------- Lia: guarda-roupa ----------------
+// ---------------- Duda (a protagonista): guarda-roupa ----------------
+// o primeiro item de cada lista é o visual de sempre dela: black power com faixa vermelha,
+// camiseta amarela, macacão azul, tênis branco de sola laranja e o relógio que conta os passos
 const OUTFIT_OPTS = {
-  hair: [['bob', '#2f3437', 'Chanel com franja'], ['pony', '#3d3330', 'Rabo de cavalo'], ['curly', '#5a4032', 'Cacheado'], ['buns', '#2f3437', 'Dois coquinhos'], ['afro', '#1f1d1c', 'Black power'], ['braid', '#9b4a3a', 'Trança ruiva'], ['short', '#c99a5b', 'Curtinho loiro'], ['long', '#29323d', 'Comprido']],
-  top: [['long', '#f1f0e8', 'Manga longa branca'], ['polo', '#de794e', 'Uniforme GIRA'], ['tee', '#66bde6', 'Camiseta azul'], ['hoodie', '#f3c258', 'Moletom amarelo'], ['tank', '#8cc48c', 'Regata verde'], ['cardigan', '#c25959', 'Casaquinho vermelho']],
-  bottom: [['skirt', '#c25959', 'Saia vermelha'], ['pants', '#4f6f8f', 'Calça jeans'], ['shorts', '#373f42', 'Bermuda'], ['skirt', '#66bde6', 'Saia azul'], ['overall', '#8a6fa8', 'Macacão']],
-  shoes: [['sneaker', '#f3c258', 'Tênis amarelo'], ['sneaker', '#f4f4ef', 'Tênis branco'], ['sandal', '#66bde6', 'Chinelo'], ['boot', '#8a5a3a', 'Bota']],
-  skin: [['#eec1a1', 'Pele 2'], ['#f6d7c3', 'Pele 1'], ['#d9a27c', 'Pele 3'], ['#b97c57', 'Pele 4'], ['#8d5a3b', 'Pele 5'], ['#6b4430', 'Pele 6']],
+  hair: [['afro', '#2b2522', 'Black power'], ['curly', '#3d3330', 'Cacheado'], ['puff', '#2b2522', 'Puff'], ['buns', '#2f3437', 'Dois coquinhos'], ['pony', '#3d3330', 'Rabo de cavalo'], ['braid', '#9b4a3a', 'Trança ruiva'], ['short', '#c99a5b', 'Curtinho loiro'], ['long', '#29323d', 'Comprido']],
+  top: [['tee', '#f3c258', 'Camiseta amarela'], ['tee', '#f4f4ef', 'Camiseta branca'], ['polo', '#de794e', 'Uniforme GIRA'], ['hoodie', '#8cc48c', 'Moletom verde'], ['tank', '#66bde6', 'Regata azul'], ['cardigan', '#c25959', 'Casaquinho vermelho']],
+  bottom: [['overall', '#3f8fb8', 'Macacão azul'], ['pants', '#4f6f8f', 'Calça jeans'], ['shorts', '#373f42', 'Bermuda'], ['skirt', '#c25959', 'Saia vermelha'], ['overall', '#8a6fa8', 'Macacão roxo']],
+  shoes: [['sneaker', '#f4f4ef', '#de794e', 'Tênis branco'], ['sneaker', '#f3c258', '#f4f4ef', 'Tênis amarelo'], ['sandal', '#66bde6', '#f4f4ef', 'Chinelo'], ['boot', '#8a5a3a', '#4b3a2f', 'Bota']],
+  skin: [['#a8693f', 'Pele 4'], ['#f6d7c3', 'Pele 1'], ['#eec1a1', 'Pele 2'], ['#d9a27c', 'Pele 3'], ['#8d5a3b', 'Pele 5'], ['#6b4430', 'Pele 6']],
 };
 let outfit = { hair: 0, top: 0, bottom: 0, shoes: 0, skin: 0 };
-try { const s = JSON.parse(localStorage.getItem('gira2-outfit')); if (s) outfit = Object.assign(outfit, s); } catch (e) {}
-function liaSpec() {
+try { const s = JSON.parse(localStorage.getItem('gira3-outfit')); if (s) outfit = Object.assign(outfit, s); } catch (e) {}
+function heroSpec() {
   const h = OUTFIT_OPTS.hair[outfit.hair % OUTFIT_OPTS.hair.length], t = OUTFIT_OPTS.top[outfit.top % OUTFIT_OPTS.top.length];
   const b = OUTFIT_OPTS.bottom[outfit.bottom % OUTFIT_OPTS.bottom.length], s = OUTFIT_OPTS.shoes[outfit.shoes % OUTFIT_OPTS.shoes.length];
   const skin = OUTFIT_OPTS.skin[outfit.skin % OUTFIT_OPTS.skin.length][0];
   return {
-    body: 'f', skin, hair: { style: h[0], color: h[1], band: '#f3c258' }, top: { kind: t[0], color: t[1] }, bottom: { kind: b[0], color: b[1] },
-    shoes: { kind: s[0], color: s[1], sole: '#f4f4ef' }, socks: b[0] === 'pants' || b[0] === 'overall' ? null : '#2f3437', acc: t[0] === 'polo' ? ['badge'] : ['strap'],
-    face: { bags: true, mouth: 'line' }, sign: 'PAREI!'
+    body: 'f', skin, hair: { style: h[0], color: h[1], band: h[0] === 'afro' ? '#c25959' : '#f3c258' }, top: { kind: t[0], color: t[1] }, bottom: { kind: b[0], color: b[1] },
+    shoes: { kind: s[0], color: s[1], sole: s[2] }, socks: b[0] === 'pants' || b[0] === 'overall' ? null : '#2f3437', acc: t[0] === 'polo' ? ['badge', 'watch'] : ['watch'],
+    face: { bags: true, mouth: 'smile' }, sign: 'PAREI!'
   };
 }
 
@@ -150,7 +152,7 @@ const NPCS = [
   { id: 'neide', name: 'DONA NEIDE', tag: '#5a8f73', voice: 210, cast: 'neide', at: { spot: 'neide', x: 1.75, z: 1.35 }, news: true,
     bubble: { 1: 'Olha o jornal!', 2: 'Manchete quentinha!', 3: 'Notícia boa? Tem não.', 4: 'Leva dois, paga dois.', 5: 'Extra! Extra! (mentira)', 6: 'Amanhã tem caderno de domingo!', 7: 'Caderno de domingo cancelado.', strike: 'Essa vai pra capa!', sunday: 'EDIÇÃO EXTRA!' },
     lines: {
-      1: D(['Bom dia, Lia! Jornal fresquinho.', 'Eu leio tudo antes de vender. É o único jeito de ler.']),
+      1: D(['Bom dia, Duda! Jornal fresquinho.', 'Eu leio tudo antes de vender. É o único jeito de ler.']),
       3: D(['Trinta anos de banca. Já vendi tudo quanto é notícia.', 'Nunca vendi uma que dissesse "hoje ninguém precisa andar".']),
       6: D(['Amanhã tem caderno de domingo!', 'Diz que vem com palavras cruzadas e um dia inteiro de folga. Se vier.']),
       sunday: D(['Olha que coisa linda: eu sentada lendo a minha própria banca.'])
@@ -223,7 +225,7 @@ const NPCS = [
   { id: 'tati', name: 'TATI', tag: '#de794e', voice: 250, cast: 'tati', walker: { s0: 0.36, speed: 2.0, lane: -0.95 }, bubble: WALKER_BUBBLES,
     lines: { 1: D(['Meu crachá diz "colaboradora". Meu joelho diz outra coisa.']), 3: D(['Hoje sonhei que eu parava. Acordei cansada do susto.']), sunday: D(['Sentei e o planeta não caiu. Quem diria.']) } },
 ];
-const LIA_INTRO = ['Acordei atrasada de novo...', 'Aqui o planeta só gira se a gente *andar*. Uma volta por dia, seis dias por semana.', 'No sétimo dia, dizem que tem *folga*. Bora.'];
+const INTRO_LINES = ['Acordei atrasada de novo...', 'Aqui o planeta só gira se a gente *andar*. Uma volta por dia, seis dias por semana.', 'No sétimo dia, dizem que tem *folga*. Bora.'];
 const VALDIR_SPEECH = ['Atenção, família GIRA!', 'A folga de domingo foi... *remanejada*.', 'Demanda alta. Vocês entendem. O planeta *não pode parar*!'];
 const STRIKE_LINES = ['Todo mundo parou.', 'O Seu Valdir ficou olhando pro céu, esperando o mundo acabar.', 'Mas o planeta *continuou girando*.', 'Devagar. Sozinho.', 'Como sempre girou.'];
 

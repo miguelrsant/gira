@@ -121,6 +121,11 @@ class Geo {
       // cor
       if (o.cf) { const c = o.cf(x, y, z, nx, ny, nz); C[k * 3] = Math.round(c.r * 255); C[k * 3 + 1] = Math.round(c.g * 255); C[k * 3 + 2] = Math.round(c.b * 255); }
       else { C[k * 3] = cr; C[k * 3 + 1] = cg; C[k * 3 + 2] = cb; }
+      // ossos: um só (peça rígida) ou vários pesos por vértice (skinF -> [osso, peso, osso, peso, ...])
+      if (this.skin) {
+        if (o.skinF) { const sw = o.skinF(x, y, z); for (let j = 0; j < 4; j++) { this.SI[k * 4 + j] = sw[j * 2] || 0; this.SW[k * 4 + j] = sw[j * 2 + 1] || 0; } }
+        else { this.SI[k * 4] = o.bone || 0; this.SW[k * 4] = 1; }
+      }
       // padrão (coordenadas planares locais, em unidades do mundo)
       if (sway) { A[k * 3] = sway * clamp(y / swayH, 0, 1.4); A[k * 3 + 1] = 0; }
       else if (pat) {
@@ -141,7 +146,6 @@ class Geo {
       N[k * 3] = nx; N[k * 3 + 1] = ny; N[k * 3 + 2] = nz;
       if (uv && s.uv) { T[k * 2] = uv[0] + s.uv[i * 2] * (uv[2] - uv[0]); T[k * 2 + 1] = uv[1] + s.uv[i * 2 + 1] * (uv[3] - uv[1]); }
       else { T[k * 2] = WHITE_UV[0]; T[k * 2 + 1] = WHITE_UV[1]; }
-      if (this.skin) { this.SI[k * 4] = o.bone || 0; this.SW[k * 4] = 1; }
     }
     const I = this.I;
     if (det >= 0) for (let i = 0; i < ni; i++) I[this.ic + i] = s.idx[i] + v0;

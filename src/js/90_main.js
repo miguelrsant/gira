@@ -19,7 +19,8 @@ function followPose(P, L, dt) {
   }
   cam.dist = dt ? lerp(cam.dist, lim, 1 - Math.exp(-dt * (lim < cam.dist ? 16 : 2.2))) : lim;
   const D = cam.dist;
-  P.copy(head).addScaledVector(back, -D * cp).addScaledVector(up, D * sp + 0.15);
+  // quando um prédio puxa a câmera para perto, ela sobe um pouco para olhar por cima do cabelo
+  P.copy(head).addScaledVector(back, -D * cp).addScaledVector(up, D * sp + 0.15 + clamp(2.8 - D, 0, 1.6) * 0.38);
   L.copy(head).addScaledVector(back, 1.5).addScaledVector(up, 0.12 - cam.pitch * 0.4);
 }
 function talkPose(a, P, L) {
@@ -74,7 +75,7 @@ function pickSide(a) {
   cam.tmode = 'side';
   return s0;
 }
-// a câmera gira em arco de trás da Lia até a frente dela (sem atravessar a cabeça)
+// a câmera gira em arco de trás da Duda até a frente dela (sem atravessar a cabeça)
 function introPose(sh, P, L, dt) {
   const up = player.d, f = player.fwd, r = _c.w.crossVectors(up, f).normalize(), hd = player.head;
   const rel = _c.s.subVectors(cam.pos, hd);
@@ -111,11 +112,13 @@ function updateCamera(dt) {
   const fT = sh && sh.kind !== 'orbit' ? fovFor() - 9 : fovFor();
   cam.fov = lerp(cam.fov, fT, 1 - Math.exp(-dt * 3));
   if (Math.abs(camera.fov - cam.fov) > 0.05) { camera.fov = cam.fov; camera.updateProjectionMatrix(); }
-  // a câmera vai se ajeitando atrás da Lia quando ela anda
-  if (!sh && state.mode === 'play' && !state.dialog && player.aspeed > 1 && performance.now() - cam.lastDrag > 1500) {
+  // a câmera vai atrás da Duda sozinha: virou para a direita, a câmera vira junto
+  // (só não dá meia-volta quando ela vem andando na direção da câmera)
+  if (!sh && state.mode === 'play' && !state.dialog && player.aspeed > 0.6 && performance.now() - cam.lastDrag > 1200) {
     const up = player.d, cf = player.camFwd, f = player.fwd;
     const ang = Math.atan2(_c.a.crossVectors(cf, f).dot(up), cf.dot(f));
-    if (Math.abs(ang) < 1.3) cf.applyAxisAngle(up, ang * (1 - Math.exp(-dt * 0.9 * player.aspeed / WALK)));
+    const k = Math.abs(ang) > 2.1 ? 0 : 2.4 * clamp(player.aspeed / WALK, 0.3, 1.4);
+    cf.applyAxisAngle(up, ang * (1 - Math.exp(-dt * k)));
   }
   const P = _c.p, L = _c.l, Up = _c.u.copy(player.d);
   let rp = 9, rl = 12, ru = 6;
@@ -404,7 +407,7 @@ function frame() {
 }
 function teleport(d, heading = 0) {
   player.d.copy(d).normalize();
-  player.fwd.copy(headingVec(player.d, heading)); player.camFwd.copy(player.fwd); player.vel.set(0, 0, 0);
+  player.fwd.copy(headingVec(player.d, heading)); player.camFwd.copy(player.fwd); player.ctrlFwd.copy(player.fwd); player.vel.set(0, 0, 0);
   player.feet = groundAt(player.d);
   eastOf(player.d, SKYF.x); SKYF.z.crossVectors(SKYF.x, player.d).normalize();
   placePlayer(); snapCamera();

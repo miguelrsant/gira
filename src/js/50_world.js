@@ -141,7 +141,7 @@ function addLandmarks() {
     interact(c, 4.9, 1.2, 0.4, { name: 'ORELHÃO', lines: ['Você tira o fone do gancho.', 'Gravação: "Sua ligação é muito importante para nós. Continue andando."'] });
     SPOTS.plaza = c;
   }
-  // casa da Lia
+  // casa da Duda
   {
     const i = nearestSample(MAIN, 4, -18), c = besideRoad(MAIN, i, 1, 4.6 + 2.0, 0.5);
     const hc = subCtx(c, 0, 0, -1.0);

@@ -54,20 +54,22 @@ function insideTall(p, pad = 0.3) {
 }
 const walkable = (d) => groundAt(d) > SEA - 0.12;
 
-// ================= Lia =================
+// ================= Duda (a protagonista) =================
 const player = {
   ch: null, d: V3(), fwd: V3(), vel: V3(), speed: 0, aspeed: 0, feet: 0, vy: 0, air: false,
   camFwd: V3(), lock: false, pos: V3(), head: V3(), actT: 0, lastStep: 0,
+  // referência dos controles: presa ao mundo enquanto a mesma direção continua apertada
+  ctrlFwd: V3(), ctrlOn: false, ctrlA: 0,
 };
-// quadro do céu, transportado junto com a Lia (nuvens passam por cima quando ela anda)
+// quadro do céu, transportado junto com a Duda (nuvens passam por cima quando ela anda)
 const SKYF = { x: V3(), z: V3(), shift: new THREE.Vector3() };
 function initPlayer() {
-  player.ch = makeChar(liaSpec());
+  player.ch = makeChar(heroSpec());
   scene.add(player.ch.rig);
   const sp = SPOTS.spawn;
   player.d.copy(sp.d);
   player.fwd.copy(sp.fwd).addScaledVector(sp.d, -sp.fwd.dot(sp.d)).normalize();
-  player.camFwd.copy(player.fwd);
+  player.camFwd.copy(player.fwd); player.ctrlFwd.copy(player.fwd);
   player.feet = groundAt(player.d);
   eastOf(player.d, SKYF.x); SKYF.z.crossVectors(SKYF.x, player.d).normalize();
   placePlayer();
@@ -79,7 +81,7 @@ function placePlayer() {
 }
 function rebuildPlayer() {
   const old = player.ch, st = old.st;
-  const spec = liaSpec(); spec.reuseSlot = old.slot;
+  const spec = heroSpec(); spec.reuseSlot = old.slot;
   const ch = makeChar(spec);
   for (const k of ['pose', 'act', 'sign', 'tired', 'seat']) ch.st[k] = st[k];
   disposeChar(old); scene.add(ch.rig); player.ch = ch; placePlayer();
@@ -106,9 +108,15 @@ function stepPlayer(dt) {
   const run = can && (keys.ShiftLeft || keys.ShiftRight || mag > 1.08);
   if (mag > 1) { ix /= mag; iy /= mag; mag = 1; }
   const cf = player.camFwd.addScaledVector(up, -player.camFwd.dot(up)).normalize();
-  const right = _m.a.crossVectors(cf, up).normalize();
-  const md = _m.md.set(0, 0, 0).addScaledVector(cf, iy).addScaledVector(right, ix);
   const moving = mag > 0.08;
+  // "para a direita" é a direita da câmera na hora em que se aperta; enquanto a direção não muda,
+  // a Duda segue reto e a câmera vira atrás dela (sem a câmera puxar a curva junto)
+  const ia = Math.atan2(ix, iy);
+  if (!moving) player.ctrlOn = false;
+  else if (!player.ctrlOn || Math.abs(angDiff(ia, player.ctrlA)) > 0.6) { player.ctrlOn = true; player.ctrlA = ia; player.ctrlFwd.copy(cf); }
+  const base = moving ? player.ctrlFwd.addScaledVector(up, -player.ctrlFwd.dot(up)).normalize() : cf;
+  const right = _m.a.crossVectors(base, up).normalize();
+  const md = _m.md.set(0, 0, 0).addScaledVector(base, iy).addScaledVector(right, ix);
   if (moving) {
     md.normalize();
     const f = player.fwd, ang = Math.atan2(_m.b.crossVectors(f, md).dot(up), f.dot(md));
@@ -135,7 +143,7 @@ function stepPlayer(dt) {
       SKYF.shift.x += (dx * SKYF.x.x + dy * SKYF.x.y + dz * SKYF.x.z) * 0.02;
       SKYF.shift.z += (dx * SKYF.z.x + dy * SKYF.z.y + dz * SKYF.z.z) * 0.02;
       _m.q.setFromUnitVectors(up, nd);
-      player.fwd.applyQuaternion(_m.q); player.vel.applyQuaternion(_m.q); player.camFwd.applyQuaternion(_m.q);
+      player.fwd.applyQuaternion(_m.q); player.vel.applyQuaternion(_m.q); player.camFwd.applyQuaternion(_m.q); player.ctrlFwd.applyQuaternion(_m.q);
       SKYF.x.applyQuaternion(_m.q);
       up.copy(nd);
       if (state.mode === 'play' && !state.sunday && !state.strike && !state.dialog) state.walked += moved;
@@ -239,7 +247,7 @@ function walkerPlace(a) {
 function updateWalker(a, dt) {
   let target = a.speed0;
   if (a.talking || state.strike || state.sunday || state.mode === 'cutscene' || state.mode === 'intro') target = 0;
-  // espera a Lia sair da frente
+  // espera a Duda sair da frente
   const rel = _w.a.copy(player.d).sub(a.d).multiplyScalar(R);
   const along = rel.dot(a.tan), side = rel.dot(_w.b.crossVectors(a.d, a.tan));
   if (along > 0.15 && along < 1.4 && Math.abs(side) < 0.6) target = 0;
@@ -260,7 +268,7 @@ function updateWalker(a, dt) {
   }
   a.ch.st.speed = a.speed;
 }
-// Caramelo: fica na frente da loja, passeia, e segue a Lia depois de uma conversa
+// Caramelo: fica na frente da loja, passeia, e segue a Duda depois de uma conversa
 function updateDog(a, dt) {
   const st = a.ch.st;
   let tgt = a.wander || a.home, keep = 0.35, maxSp = 2.6;
@@ -321,7 +329,7 @@ function updateActors(dt, t) {
     }
     if (n.id === 'bia' && a.dist < 6 && a.waved !== dayKey && state.mode === 'play' && !a.talking) { a.waved = dayKey; st.act = 'wave'; a.actT = 2.4; }
     if (a.actT > 0) { a.actT -= dt; if (a.actT <= 0) st.act = state.strike ? 'protest' : state.sunday ? null : a.baseAct; }
-    // olhar para a Lia
+    // olhar para a Duda
     const up = a.up || a.d;
     if (a.dist < 5 && a.vis && state.mode !== 'title') {
       _b.p.copy(ch.rig.position).addScaledVector(up, ch.pet ? 0.45 : ch.headY);

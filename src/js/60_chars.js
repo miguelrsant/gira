@@ -163,7 +163,7 @@ function drawPetFace(g, f, k) {
   }
 }
 const _faceDone = new Map();
-// reuse: quadro de um rosto antigo que pode ser redesenhado quando o atlas enche (troca de roupa da Lia)
+// reuse: quadro de um rosto antigo que pode ser redesenhado quando o atlas enche (troca de roupa da Duda)
 function faceSheet(f, pet, reuse) {
   const key = JSON.stringify(f) + (pet ? 'p' : '');
   if (_faceDone.has(key)) return _faceDone.get(key);
@@ -421,9 +421,11 @@ function makeChar(spec) {
   mk(foreR, 0, -P.fore - 0.03 * P.ag, 0.0);              // 15 cartaz da greve
   // ---- tronco ----
   const ky = (P.shY - P.waist) / 0.35, w = P.tw, b = P.belly, cst = P.chest, shd = P.shoulders || 0;
-  const prof = [[0.0, -0.12], [0.137, -0.12], [0.14, -0.05], [0.134 + b * 0.8, 0.04], [0.14 + b, 0.1], [0.148 + cst + b * 0.4, 0.18], [0.156 + cst * 0.6, 0.24], [0.16 + shd, 0.3], [0.15 + shd, 0.34], [0.112 + shd * 0.5, 0.375], [0.06, 0.395], [0.0, 0.4]];
+  const prof = [[0.0, -0.12], [0.137, -0.12], [0.14, -0.05], [0.134 + b * 0.8, 0.04], ...(bot.kind === 'overall' ? [[0.136 + b * 0.88, 0.064], [0.137 + b * 0.9, 0.076]] : []), [0.14 + b, 0.1], [0.148 + cst + b * 0.4, 0.18], [0.156 + cst * 0.6, 0.24], [0.16 + shd, 0.3], [0.15 + shd, 0.34], [0.112 + shd * 0.5, 0.375], [0.06, 0.395], [0.0, 0.4]];
   const torsoC = dress ? tc : (top.kind === 'apron' ? tc : tc);
-  { const tg = latheG(prof.map(([r, y]) => [r * w, y * ky])); add(tg, TM(0, P.waist, 0, 1, 1, P.td), torsoC, 3, BI.torso); tg.dispose(); }
+  // macacão: a barriga e as costas até a cintura são do tecido do macacão (nada de camiseta aparecendo por baixo)
+  const ovr = bot.kind === 'overall' ? { cf: (x, y) => (y < P.waist + 0.07 * ky ? C(bc) : C(torsoC)) } : null;
+  { const tg = latheG(prof.map(([r, y]) => [r * w, y * ky])); add(tg, TM(0, P.waist, 0, 1, 1, P.td), torsoC, 3, BI.torso, ovr); tg.dispose(); }
   // pescoço
   { const ng = taperG(0.042 * hr / 0.15, 0.045 * hr / 0.15, P.neck - P.shY + 0.06); add(ng, TM(0, P.shY - 0.02, 0.0), skin, 1, BI.torso); ng.dispose(); }
   if (top.kind === 'polo' || top.kind === 'shirt' || top.kind === 'blazer') add(torG(1, 0.32, 6, 14), TM(0, P.shY + 0.02, 0.005, 0.058, 0.058, 0.05, 0, Math.PI / 2 + 0.25), top.collar || (top.kind === 'polo' ? tc : '#f4f4ef'), 6, BI.torso);
@@ -478,7 +480,13 @@ function makeChar(spec) {
   if (bot.kind === 'skirt' || dress) {
     const hem = P.knee + (dress ? -0.02 : 0.06), H0 = P.waist + 0.04 - hem;
     const sk = latheG([[0.0, H0 + 0.01], [0.132 * w, H0], [0.145 * w, H0 * 0.7], [0.175 * w, H0 * 0.3], [0.205 * w, 0.02], [0.2 * w, 0.0], [0.0, 0.0]].reverse().map(([r, y]) => [r, y]));
-    add(sk, TM(0, hem, 0, 1, 1, 0.82), dress ? tc : bc, 4, BI.root); sk.dispose();
+    // a barra acompanha as pernas (perto do quadril fica presa ao corpo): a coxa nunca fura a saia
+    const span = P.hip + 0.03 - hem;
+    const skinF = (x, y) => {
+      const k = sstep(0, 1, (P.hip + 0.03 - y) / span) * 0.82, sL = sstep(-0.075, 0.075, x);
+      return [BI.root, 1 - k, BI.legL, k * sL, BI.legR, k * (1 - sL)];
+    };
+    add(sk, TM(0, hem, 0, 1, 1, 0.82), dress ? tc : bc, 4, BI.root, { skinF }); sk.dispose();
   }
   if (bot.kind === 'overall') {
     add(GEO.box, TM(0, P.waist + 0.12 * ky, 0.095 * P.td / 0.7, 0.2 * w, 0.2 * ky, 0.03), bc, 4, BI.torso);
@@ -544,6 +552,8 @@ function makeChar(spec) {
   if (H.bun) { add(sphG(12, 8), HM(0, hr * 0.98, -hr * 0.55, hr * 0.42, hr * 0.38, hr * 0.42), hcC, 2, BI.head); add(torG(1, 0.2, 5, 12), HM(0, hr * 0.8, -hr * 0.42, hr * 0.28, hr * 0.28, hr * 0.28, 0, 0.6), spec.hair.band || '#c25959', 6, BI.head); }
   if (H.buns) for (const s of [1, -1]) add(sphG(12, 8), HM(s * hr * 0.66, hr * 0.8, -hr * 0.2, hr * 0.36, hr * 0.36, hr * 0.36), hcC, 2, BI.head);
   if (H.afro) add(blobG(4, LOW ? 1 : 2), HM(0, hr * 0.42, -hr * 0.28, hr * 1.42, hr * 1.25, hr * 1.36), hcC, 2, BI.head);
+  // faixa na testa, por baixo do black power
+  if (H.afro && spec.hair.band) add(torG(1, 0.13, 6, 22), HM(0, hr * 0.4, hr * 0.02, hr * 1.02, hr * 1.02, hr * 1.02, 0, Math.PI / 2 - 0.42), spec.hair.band, 6, BI.head);
   if (H.puff) { add(blobG(2, LOW ? 1 : 2), HM(0, hr * 1.1, -hr * 0.5, hr * 0.78, hr * 0.7, hr * 0.78), hcC, 2, BI.head); add(torG(1, 0.18, 5, 14), HM(0, hr * 0.8, -hr * 0.36, hr * 0.44, hr * 0.44, hr * 0.44, 0, 0.55), spec.hair.band || '#f3c258', 6, BI.head); }
   if (H.sides) for (const s of [1, -1]) add(blobG(6, 1), HM(s * hr * 0.92, hr * 0.12, -hr * 0.3, hr * 0.26, hr * 0.32, hr * 0.5), hcC, 2, BI.head);
   if (H.tail === 'pony') {
@@ -674,7 +684,7 @@ function poseChar(ch, dt) {
   const kSm = 1 - Math.exp(-dt * 9);
   const wT = clamp(st.speed / WALK, 0, 1), rT = clamp((st.speed - WALK) / (RUN - WALK), 0, 1);
   st.w = lerp(st.w, wT, kSm); st.run = lerp(st.run, rT, kSm);
-  const stride = lerp(0.52, 0.8, st.run) * (P.hip / 0.8);
+  const stride = lerp(0.62, 0.92, st.run) * (P.hip / 0.8);
   st.phase += st.speed * dt * Math.PI / stride;
   const w = st.w * (1 - st.air), run = st.run, ph = st.phase, s1 = Math.sin(ph), c1 = Math.cos(ph);
   const tired = st.tired;
@@ -706,21 +716,24 @@ function poseChar(ch, dt) {
     B[4].rotation.x = B[6].rotation.x = -0.12;
     B[3].rotation.z = 0.22; B[5].rotation.z = -0.22;
   } else {
-    // em pé: pernas e balanço da caminhada
-    const legA = lerp(0.5, 0.88, run) * w, kneeA = lerp(0.85, 1.35, run) * w;
-    B[7].rotation.x = -s1 * legA; B[10].rotation.x = s1 * legA;
-    B[8].rotation.x = 0.06 * w + Math.max(0, c1) * kneeA; B[11].rotation.x = 0.06 * w + Math.max(0, -c1) * kneeA;
-    B[9].rotation.x = -(B[7].rotation.x + B[8].rotation.x) * 0.55; B[12].rotation.x = -(B[10].rotation.x + B[11].rotation.x) * 0.55;
-    B[0].position.y += (Math.abs(c1) - 0.6) * lerp(0.035, 0.06, run) * w - 0.012 * w - 0.03 * run;
+    // em pé: passinhos curtos, o joelho sobe na passada e o peso troca de um pé para o outro
+    const legA = lerp(0.34, 0.6, run) * w, kneeA = lerp(0.95, 1.3, run) * w;
+    const swL = Math.max(0, c1), swR = Math.max(0, -c1);
+    B[7].rotation.x = -s1 * legA - swL * 0.1 * w; B[10].rotation.x = s1 * legA - swR * 0.1 * w;
+    B[8].rotation.x = 0.08 * w + swL * kneeA; B[11].rotation.x = 0.08 * w + swR * kneeA;
+    B[9].rotation.x = -(B[7].rotation.x + B[8].rotation.x) * 0.6; B[12].rotation.x = -(B[10].rotation.x + B[11].rotation.x) * 0.6;
+    B[0].position.y += (Math.abs(c1) - 0.6) * lerp(0.05, 0.07, run) * w - 0.012 * w - 0.03 * run;
+    B[0].position.x = -c1 * 0.012 * w * (1 - run * 0.5);
     B[1].rotation.y = -s1 * 0.12 * w;
+    B[1].rotation.z = c1 * 0.035 * w * (1 - run * 0.5);
     B[1].rotation.x = 0.03 * w + run * 0.2 + tired * 0.16 + (P.stoop || 0) + Math.sin(t * 1.7) * 0.012 * (1 - w);
     B[0].rotation.y = s1 * 0.07 * w;
     B[2].rotation.y = s1 * 0.09 * w;
     // braços
-    const armA = lerp(0.42, 0.95, run) * w * (1 - tired * 0.5);
+    const armA = lerp(0.5, 0.95, run) * w * (1 - tired * 0.5);
     B[3].rotation.x = s1 * armA; B[5].rotation.x = -s1 * armA;
-    B[4].rotation.x = -(0.18 + run * 1.15) * Math.max(w, 0.35) - 0.08;
-    B[6].rotation.x = -(0.18 + run * 1.15) * Math.max(w, 0.35) - 0.08;
+    B[4].rotation.x = -(0.2 + 0.25 * w + run * 0.95) * Math.max(w, 0.35) - 0.08 - Math.max(0, -s1) * 0.25 * w;
+    B[6].rotation.x = -(0.2 + 0.25 * w + run * 0.95) * Math.max(w, 0.35) - 0.08 - Math.max(0, s1) * 0.25 * w;
     const sway = Math.sin(t * 1.7) * 0.02 * (1 - w);
     B[3].rotation.z = 0.09 + sway + run * 0.12; B[5].rotation.z = -0.09 - sway - run * 0.12;
     // pulo / queda

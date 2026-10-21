@@ -147,8 +147,8 @@ function refreshTasks() {
   $('tasks').innerHTML = tasks.map(([t, d]) => `<div class="task ${d ? 'done' : ''}"><span class="box">${d ? '✓' : ''}</span><span>${t}</span></div>`).join('');
   $('explore').innerHTML = DISTRICTS.map((z) => { const v = state.visited.has(z.name); return `<div class="task ${v ? 'done' : ''}"><span class="box">${v ? '✓' : ''}</span><span>${v ? z.name.toLowerCase().replace(/(^|\s)\S/g, (m) => m.toUpperCase()) : '???'}</span></div>`; }).join('');
   $('keys').innerHTML = IS_TOUCH
-    ? 'Arraste do lado esquerdo para andar (mais longe = correr). Arraste do lado direito para girar a câmera, com dois dedos para aproximar. Toque no balão para conversar.'
-    : '<kbd>WASD</kbd> ou setas: andar · <kbd>SHIFT</kbd>: correr · <kbd>ESPAÇO</kbd>: pular · arraste o mouse: câmera · roda: zoom · <kbd>E</kbd>: conversar · <kbd>1</kbd>–<kbd>6</kbd>: emoções · <kbd>M</kbd>: som';
+    ? 'Arraste do lado esquerdo para andar (mais longe = correr). A câmera acompanha sozinha; se quiser olhar em volta, arraste do lado direito, e use dois dedos para aproximar. Toque no balão para conversar.'
+    : '<kbd>WASD</kbd> ou setas: andar · <kbd>SHIFT</kbd>: correr · <kbd>ESPAÇO</kbd>: pular · a câmera acompanha sozinha (arrastar o mouse olha em volta) · roda: zoom · <kbd>E</kbd>: conversar · <kbd>1</kbd>–<kbd>6</kbd>: emoções · <kbd>M</kbd>: som';
 }
 let hintTimer = 0;
 function setHint(text, ms = 4000) { const h = $('hint'); h.textContent = text; h.classList.add('on'); clearTimeout(hintTimer); hintTimer = setTimeout(() => h.classList.remove('on'), ms); }
@@ -185,7 +185,7 @@ function renderWardrobe() {
 }
 function changeOutfit(k, d) {
   const n = OUTFIT_OPTS[k].length; outfit[k] = (outfit[k] + d + n) % n;
-  try { localStorage.setItem('gira2-outfit', JSON.stringify(outfit)); } catch (e) {}
+  try { localStorage.setItem('gira3-outfit', JSON.stringify(outfit)); } catch (e) {}
   rebuildPlayer(); renderWardrobe(); sfx.pop(); showEmote(null, '♥');
 }
 const EMOTES = ['!', '?', '♥', '…', 'zz', '#@!'];
@@ -278,7 +278,7 @@ function updateOverlays(dt) {
     a.emoteEl.classList.toggle('on', showE);
     if (showE) { const k = Math.min(1, (2.2 - a.emoteT) * 6); a.emoteEl.style.transform = `translate(${s[0].toFixed(1)}px, ${(s[1] - 22).toFixed(1)}px) translate(-50%, -100%) scale(${k.toFixed(3)})`; }
   }
-  // emoção da Lia
+  // emoção da Duda
   if (meEmoteT > 0) meEmoteT -= dt;
   const pe = meEmoteT > 0 && playing ? screenOf(_ov.p.copy(player.pos).addScaledVector(player.d, player.ch.st.pose === 'ground' ? 1.15 : 1.85), _sc) : null;
   meEmote.classList.toggle('on', !!pe);

@@ -135,16 +135,16 @@ async function startGame() {
   await wait(250);
   ld.classList.add('wipe'); sfx.whoosh(true);
   await wait(1000); ld.classList.add('hidden');
-  // a câmera dá a volta até a frente da Lia
+  // a câmera dá a volta até a frente da Duda
   await wait(350);
   const shot = cam.shot = { kind: 'intro', t: 0 };
   const t0 = performance.now();
   while (shot.t < 1.75 && performance.now() - t0 < 6000) await wait(50);
   $('hud').classList.add('on');
-  await openDialog('LIA', '#66bde6', LIA_INTRO, { voice: 260, speaker: player.ch });
+  await openDialog('DUDA', '#c25959', INTRO_LINES, { voice: 260, speaker: player.ch });
   cam.shot = null;
   state.mode = 'play'; document.body.classList.add('playing');
   refreshTasks();
-  setHint(IS_TOUCH ? 'Arraste à esquerda para andar · à direita para olhar em volta' : 'WASD para andar · Shift corre · arraste o mouse para olhar em volta', 7000);
+  setHint(IS_TOUCH ? 'Arraste à esquerda para andar · a câmera vai atrás de você' : 'WASD ou setas para andar · Shift corre · a câmera vai atrás de você', 7000);
 }
 $('start').onclick = () => startGame();
