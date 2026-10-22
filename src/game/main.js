@@ -25,7 +25,7 @@ import { storyProps } from './story/props.js';
 import { actor, ACTORS, spawnActors, updateActors } from './play/actors.js';
 import { setMusic } from './play/audio.js';
 import { cam, snapCamera, updateCamera } from './play/camera.js';
-import { hashColliders, insideTall, pushOut } from './play/collide.js';
+import { autoColliders, colliderLines, hashColliders, insideTall, pushOut } from './play/collide.js';
 import { updateSky } from './play/daylight.js';
 import { updateDialog } from './play/dialog.js';
 import { startStrike, startTalk, updateGame } from './play/director.js';
@@ -51,6 +51,7 @@ function frame() {
   U.time.value = t; post.uniforms.time.value = t; waterMat.uniforms.time.value = t; skyMat.uniforms.time.value = t;
   if (DYN.pools) for (const m of DYN.pools) m.material.uniforms.time.value = t;
   if (state.mode === 'title') updateTitle(dt);
+  autoColliders(player.d, 3);
   stepPlayer(dt);
   updateGame(dt);
   updateMissions(dt);
@@ -129,5 +130,9 @@ window.__gira = {
   gesture(g) { heroGesture(g); },
   missions: MISSION_DEBUG,
   // câmera de teste: lab(ângulo em volta da Duda, distância, altura, fov); lab() volta ao normal
+  // depuração: colisores desenhados em volta da Duda (true liga, false desliga)
+  colisao(on = true) { if (this._coll) { scene.remove(this._coll); this._coll = null; } if (on) { this._coll = colliderLines(player.d, 25); scene.add(this._coll); } },
+  // colisão automática do planeta todo de uma vez (testes)
+  autoAll() { while (!autoColliders(player.d, 1000)); },
   lab(a, d = 3, h = 0, fov = 30, y = 0.75) { cam.shot = a === undefined ? null : { kind: 'lab', a, d, h, fov, y }; },
 };

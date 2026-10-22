@@ -1,7 +1,8 @@
 // ================= colisão no planeta =================
 import { R, SEA } from '../core/config.js';
-import { Vector3 } from 'three';
+import { BufferGeometry, DoubleSide, Float32BufferAttribute, Mesh, MeshBasicMaterial, Vector3 } from 'three';
 import { clamp } from '../core/math.js';
+import { CH } from '../world/chunks.js';
 import { COLLIDERS } from '../world/places.js';
 import { groundAt, SHash } from '../world/terrain.js';
 
@@ -112,3 +113,80 @@ export function insideTall(p, pad = 0.3) {
   return hit;
 }
 export const walkable = (d) => groundAt(d) > SEA - 0.12;
+// ---------------- colisão automática ----------------
+// tudo o que foi desenhado na altura do corpo (cerca, canteiro, base de prédio, banca, enfeite...) e ficou sem
+// colisor ganha bolinhas de colisão. Antes cada peça precisava pedir o seu, e as que esqueciam eram atravessadas
+// (por isso uns pontos tinham colisão e outros não). Feito aos poucos, alguns ms por quadro, a partir do pedaço do
+// planeta mais perto da Duda.
+const AC = { seen: new Set(), todo: null, cur: null, i: 0, n: 0, P: null, I: null, done: false };
+const AC_CELL = 0.18, AC_R = 0.2, _ac = new Vector3();
+function acTest(x, y, z) {
+  const k = Math.round(x / AC_CELL) + ',' + Math.round(y / AC_CELL) + ',' + Math.round(z / AC_CELL);
+  if (AC.seen.has(k)) return; AC.seen.add(k);
+  const l = Math.hypot(x, y, z); _ac.set(x / l, y / l, z / l);
+  const h = l - R - groundAt(_ac);
+  if (h < 0.15 || h > 1.4) return;
+  // já está dentro de um colisor (o do prédio, o do poste, outra bolinha): nada a fazer
+  const t = _ac.clone(); _moved = false; pushOnce(t, 0.02); if (_moved) return;
+  const co = { d: _ac.clone(), r: AC_R, auto: true };
+  COLLIDERS.push(co); CHASH.insert(co.d.x * R, co.d.y * R, co.d.z * R, AC_R + 0.7, co);
+}
+const _tri = new Float32Array(9);
+function acTri(P, I, t) {
+  for (let v = 0; v < 3; v++) { const j = I ? I[t + v] : t + v; _tri[v * 3] = P[j * 3]; _tri[v * 3 + 1] = P[j * 3 + 1]; _tri[v * 3 + 2] = P[j * 3 + 2]; }
+  const T = _tri, e = Math.max(Math.hypot(T[0] - T[3], T[1] - T[4], T[2] - T[5]), Math.hypot(T[0] - T[6], T[1] - T[7], T[2] - T[8]), Math.hypot(T[3] - T[6], T[4] - T[7], T[5] - T[8]));
+  const s = Math.min(24, Math.max(1, Math.ceil(e / 0.2)));
+  for (let a = 0; a <= s; a++) for (let b = 0; a + b <= s; b++) {
+    const u = a / s, w = b / s, q = 1 - u - w;
+    acTest(T[0] * q + T[3] * u + T[6] * w, T[1] * q + T[4] * u + T[7] * w, T[2] * q + T[5] * u + T[8] * w);
+  }
+}
+// devolve true quando terminou o planeta todo
+export function autoColliders(near, ms = 3) {
+  if (AC.done) return true;
+  if (!AC.todo) { AC.todo = []; for (const ch of CH) for (const L of ['main', 'small']) if (ch.mesh[L]) AC.todo.push({ ch, m: ch.mesh[L] }); }
+  const t0 = performance.now();
+  while (performance.now() - t0 < ms) {
+    if (!AC.cur) {
+      if (!AC.todo.length) { AC.done = true; return true; }
+      let bi = 0, bd = -2;
+      AC.todo.forEach((j, i) => { const v = j.ch.dir.dot(near); if (v > bd) { bd = v; bi = i; } });
+      AC.cur = AC.todo.splice(bi, 1)[0]; AC.i = 0;
+      const g = AC.cur.m.geometry; AC.P = g.attributes.position.array; AC.I = g.index ? g.index.array : null; AC.n = AC.I ? AC.I.length : AC.P.length / 3;
+    }
+    const end = Math.min(AC.n, AC.i + 240);
+    for (; AC.i < end; AC.i += 3) acTri(AC.P, AC.I, AC.i);
+    if (AC.i >= AC.n) AC.cur = null;
+  }
+  return false;
+}
+// depuração: desenha cada colisor como uma cerquinha translúcida (vermelho = caixa, laranja = círculo,
+// roxo = vão fechado, azul = automático). No jogo: __gira.colisao(true)
+export function colliderLines(near, rad = 30) {
+  const pos = [], colr = [];
+  const wall = (pts, c, h0, h1) => {
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i].clone().normalize(), b = pts[(i + 1) % pts.length].clone().normalize();
+      const ga = groundAt(a), gb = groundAt(b);
+      const P = (u, h) => [u.x * (R + h), u.y * (R + h), u.z * (R + h)];
+      const v = [P(a, ga + h0), P(b, gb + h0), P(b, gb + h1), P(a, ga + h0), P(b, gb + h1), P(a, ga + h1)];
+      for (const q of v) { pos.push(...q); colr.push(...c); }
+    }
+  };
+  for (const co of COLLIDERS) {
+    const c = co.box ? co.c : co.d; if (near && c.distanceTo(near) * R > rad) continue;
+    const col = co.auto ? [0.1, 0.8, 0.95] : co.fill ? [0.6, 0.2, 0.9] : co.box ? [0.95, 0.1, 0.1] : [1, 0.55, 0];
+    let pts;
+    if (co.box) {
+      const at = (x, z) => co.c.clone().multiplyScalar(R).addScaledVector(co.r, x).addScaledVector(co.f, z);
+      const cs = [at(-co.hw, -co.hd), at(co.hw, -co.hd), at(co.hw, co.hd), at(-co.hw, co.hd)];
+      pts = []; for (let i = 0; i < 4; i++) for (let k = 0; k < 6; k++) pts.push(cs[i].clone().lerp(cs[(i + 1) % 4], k / 6));
+    } else pts = outline(co);
+    wall(pts, col, 0.02, co.fill ? 0.35 : 0.7);
+  }
+  const g = new BufferGeometry();
+  g.setAttribute('position', new Float32BufferAttribute(pos, 3)); g.setAttribute('color', new Float32BufferAttribute(colr, 3));
+  const m = new Mesh(g, new MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.55, side: DoubleSide, depthWrite: false, toneMapped: false }));
+  m.renderOrder = 999; m.frustumCulled = false;
+  return m;
+}

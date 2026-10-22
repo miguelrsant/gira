@@ -62,6 +62,8 @@ export function fence(c, x0, x1, z, h = 1.0, color = '#f4f4ef') {
   const n = Math.max(1, Math.round((x1 - x0) / 0.3));
   for (let i = 0; i <= n; i++) K.box(c, lerp(x0, x1, i / n), 0, z, 0.08, h, 0.05, color, { id: 3, layer: 'small' });
   K.box(c, (x0 + x1) / 2, h * 0.65, z - 0.04, x1 - x0, 0.08, 0.04, color, { id: 3, layer: 'small' });
+  // cerca é parede: sem colisor a Duda atravessava a da horta e a do portão da mansão
+  solid(c, (x0 + x1) / 2, z, 0, x1 - x0 + 0.1, 0.16);
 }
 function guardRail(c, x0, x1, z) {
   const n = Math.max(1, Math.round((x1 - x0) / 2));

@@ -55,7 +55,13 @@ export function baseH(d) {
     else { const k = 1 - x * x; h += b.h * k * k; }
   }
   const w = wildMask(d);
-  if (w > 0.001) h += w * (fbm3(d.x * 2.4 + 5, d.y * 2.4, d.z * 2.4 - 3, 3) - 0.47) * 3.2;
+  if (w > 0.001) {
+    let n = w * (fbm3(d.x * 2.4 + 5, d.y * 2.4, d.z * 2.4 - 3, 3) - 0.47) * 3.2;
+    // o relevo do mato não cava poça: só o lago e o mar ficam abaixo da água
+    const lim = Math.max(0, h - (SEA + 0.4));
+    if (n < 0) n = lim > 1e-4 ? -lim * (1 - Math.exp(n / lim)) : 0;
+    h += n;
+  }
   return h;
 }
 // rua mais próxima (distância em unidades, altura interpolada, lado)
