@@ -1,6 +1,6 @@
 // ---------------- relevo e ruas ----------------
 import * as THREE from 'three';
-import { SEA } from '../core/config.js';
+import { R, SEA } from '../core/config.js';
 import { dirOf, latOf, lonOf } from '../core/math.js';
 import { defRoad, settleRoads } from './roads.js';
 import { addZone, hill, town } from './terrain.js';
@@ -10,6 +10,13 @@ function onRoad(rd, lat, lon) {
   const d = dirOf(lat, lon); let best = rd.S[0];
   for (const s of rd.S) if (s.d.dot(d) > best.d.dot(d)) best = s;
   return [latOf(best.d), lonOf(best.d)];
+}
+// ponto ao lado de uma rua: 'k' unidades para o lado +s da amostra mais perto de (lat, lon)
+function besideOf(rd, lat, lon, k) {
+  const d = dirOf(lat, lon); let best = rd.S[0];
+  for (const s of rd.S) if (s.d.dot(d) > best.d.dot(d)) best = s;
+  const q = best.d.clone().addScaledVector(best.s, k / R).normalize();
+  return [latOf(q), lonOf(q)];
 }
 export let MAIN, VILA, LADEIRA, CONJ, BOARD, PIER, LAKEPIER;
 export function defineWorld() {
@@ -38,9 +45,10 @@ export function defineWorld() {
     onRoad(VILA, 25, 79), [31, 72], [38, 64], [46, 70], [53, 62], [60, 70], [66, 63], [69.6, 70], [77, 70]] });
   CONJ = defRoad({ name: 'Conjunto Esteira Feliz', w: 2.5, sw: 1.0, marks: 'none', level: 4, pts: [
     onRoad(MAIN, 4, 106), [-6, 101], [-16, 96], [-25, 99], [-31, 108], [-27, 121], [-17, 128], onRoad(MAIN, -10, 134)] });
-  defRoad({ name: 'Acesso da Fábrica', w: 2.6, sw: 0.8, marks: 'none', level: 5, pts: [onRoad(MAIN, -16, 149), [-23, 148], [-28, 151]] });
-  BOARD = defRoad({ name: 'Calçadão', kind: 'wood', w: 2.2, level: 6, pts: [[-27.6, 203], [-28.3, 216], [-28.6, 230], [-28.3, 244], [-27.6, 256]] });
-  PIER = defRoad({ name: 'Píer', kind: 'pier', w: 1.9, fixedH: SEA + 0.95, noFlat: true, pts: [[-29.5, 232], [-40, 232.5], [-50, 233], [-59, 234], [-66, 235]] });
+  // o calçadão encosta no meio-fio da avenida: é a calçada do lado da praia (antes sobrava uma faixa de areia
+  // entre os dois, com a calçada da avenida cortada pela metade)
+  BOARD = defRoad({ name: 'Calçadão', kind: 'wood', w: 2.2, level: 6, pts: [203, 216, 230, 244, 256].map((lo) => besideOf(MAIN, -20, lo, MAIN.hw + 1.12)) });
+  PIER = defRoad({ name: 'Píer', kind: 'pier', w: 1.9, fixedH: SEA + 0.95, noFlat: true, pts: [besideOf(MAIN, -20, 232, MAIN.hw + 2.0), [-40, 232.5], [-50, 233], [-59, 234], [-66, 235]] });
   LAKEPIER = defRoad({ name: 'Deque do Lago', kind: 'pier', w: 1.5, fixedH: SEA + 0.7, noFlat: true, pts: [[7.8, 296], [10.6, 297.5]] });
   // trilhas de terra
   const trail = (pts, w = 1.6) => defRoad({ kind: 'trail', w, pts });

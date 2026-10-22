@@ -19,7 +19,7 @@ export function plazaDisc(c, r) {
   for (let k = 0; k < n; k++) {
     const a0 = k / n * Math.PI * 2, a1 = (k + 1) / n * Math.PI * 2;
     const p0 = P(a0, r, y), p1 = P(a1, r, y);
-    g.quad(cen, p1, p0, cen, col1, { pat: 6, id: 2, q: [[0, 0], [Math.cos(a1) * r, Math.sin(a1) * r], [Math.cos(a0) * r, Math.sin(a0) * r], [0, 0]] });
+    g.quad(p1, p0, cen, cen, col1, { pat: 6, id: 2, q: [[Math.cos(a1) * r, Math.sin(a1) * r], [Math.cos(a0) * r, Math.sin(a0) * r], [0, 0], [0, 0]] });
     g.quad(P(a0, r, y), P(a1, r, y), P(a1, r, -1.2), P(a0, r, -1.2), col2, { id: 2 });
   }
 }

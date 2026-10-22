@@ -20,7 +20,7 @@ import { leafCF, LEAVES, palm, tree } from './plants.js';
 import {
   fieldLine, hammock, lighthouse, loungeChair, plazaDisc, poolAt, rowboat, scarecrow, wheelFrame,
 } from './special.js';
-import { addZone, H } from './terrain.js';
+import { addZone, baseH, H } from './terrain.js';
 import { texClock, texDoor, texMenu, texSign, texWishes } from './textures.js';
 
 export function addLandmarks() {
@@ -61,9 +61,10 @@ export function addLandmarks() {
     SPOTS.spawn = { d: ctxDir(c, 0.9, 4.3), fwd: c.fwd.clone() };
   }
   // GIRA S.A.
-  district('GIRA S.A.', 'sede da empresa que gira o planeta', 22, 22, 7);
   {
     const i = nearestSample(MAIN, 4.5, 22), c = besideRoad(MAIN, i, 1, 7 + 3.4, 0.4);
+    // o nome aparece em volta do prédio (antes ficava do outro lado da avenida, em cima do campinho)
+    district('GIRA S.A.', 'sede da empresa que gira o planeta', latOf(c.d), lonOf(c.d), 7);
     lot(c, 7.4, 10.6, { colW: 7, colD: 7, ccz: -1.7 });
     const tc = subCtx(c, 0, 0, -1.7);
     BUILDS.push(() => {
@@ -119,11 +120,12 @@ export function addLandmarks() {
     interact(c, 1.75, 1.6, 0.2, { name: 'PONTO DE ÔNIBUS', lines: ['PRÓXIMO ÔNIBUS: SEGUNDA-FEIRA.', 'Embaixo, a lápis: "sempre segunda-feira".'] });
   }
   // campinho
-  district('CAMPINHO', 'proibido jogar bola em dia útil', -12, 28, 6);
   {
-    const i = nearestSample(MAIN, 4.5, 28), c = besideRoad(MAIN, i, -1, 6.5, 1.0);
+    // atrás das lojas da Rua do Comércio, no gramado aberto (antes ficava embaixo delas)
+    const i = nearestSample(MAIN, 4.5, 28), c0 = besideRoad(MAIN, i, -1, 6.5, 5.8), c = placeDir(c0.d, c0.fwd, { h: baseH(c0.d) });
     lot(c, 10, 6.5, { kind: 'field', collide: false, m: 2.4 });
-    reserve(-12, 28, 6);
+    reserve(latOf(c.d), lonOf(c.d), 6);
+    district('CAMPINHO', 'proibido jogar bola em dia útil', latOf(c.d), lonOf(c.d), 6);
     BUILDS.push(() => {
       goal(c, -4.8, 0, Math.PI / 2); goal(c, 4.8, 0, -Math.PI / 2);
       for (const [x0, z0, x1, z1] of [[-5, -3.2, 5, -3.2], [-5, 3.2, 5, 3.2], [0, -3.2, 0, 3.2]]) fieldLine(c, x0, z0, x1, z1);
@@ -136,21 +138,19 @@ export function addLandmarks() {
   // Vila do Sossego
   district('VILA DO SOSSEGO', 'o nome é antigo', 25, 92, 11);
   {
-    // a pracinha fica ao lado da Rua das Flores (antes ela caía em cima da rua)
+    // o banco do Seu Lino fica no canteiro entre a Rua das Flores e a do Sossego
+    // (a praça redonda de antes caía em cima da calçada da Rua do Sossego e o chão dela afundava)
     const flores = ROADS.find((r) => r.name === 'Rua das Flores');
-    const fi = nearestSample(flores, 24.5, 95);
-    const sides = [1, -1].map((sd) => besideRoad(flores, fi, sd, 5.6, 0.2));
-    const c = sides[0].d.y > sides[1].d.y ? sides[0] : sides[1];
-    addZone(c.d, c.fwd, 2.8, 2.8, { h: c.h, round: true, kind: 'paved', m: 1.5 });
-    reserve(latOf(c.d), lonOf(c.d), 3.4); FOOT.push(footOf(c, 6, 6));
+    const d0 = dirOf(28.5, 99.5), fs = flores.S[nearestSample(flores, 28.5, 99.5)];
+    const c = placeDir(d0, fs.s.clone().multiplyScalar(-1)), cb = drop(c, 0, 0);
+    reserve(28.5, 99.5, 2.6);
     BUILDS.push(() => {
-      plazaDisc(c, 2.7);
-      bench(c, 0, 0.9, Math.PI); tree(c, -1.6, -1.2, 1.05); addCircleLocal(c, -1.6, -1.2, 0.45); lampPost(c, 1.9, -1.4);
-      pot(c, 1.6, 1.4); pot(c, -1.9, 1.3, 0.8);
-      K.pl(c, 0.9, 0.62, 1.205, 0.32, 0.12, texSign('EM MEMÓRIA', '#a07c48', '#f3e1b0', { font: 'lbl', w: 256, h: 96 }), { id: 6 });
+      bench(cb, 0, 0, Math.PI); tree(c, -2.5, 0, 0.9); addCircleLocal(c, -2.5, 0, 0.4); lampPost(c, 2.3, 0);
+      pot(c, 1.35, 0, 0.8); pot(c, -1.35, 0, 0.8);
+      K.pl(cb, 0.9, 0.62, 0.305, 0.32, 0.12, texSign('EM MEMÓRIA', '#a07c48', '#f3e1b0', { font: 'lbl', w: 256, h: 96 }), { id: 6 });
     });
-    interact(c, 0.9, 0.6, 1.3, { name: 'PLAQUINHA', lines: ['"Banco em memória de quem sentou aqui."', 'Ninguém nunca sentou. Só o Seu Lino.'] });
-    SPOTS.lino = { c, x: 0, z: 1.15, y: 0, ry: Math.PI };
+    interact(cb, 0.9, 0.6, 0.4, { name: 'PLAQUINHA', lines: ['"Banco em memória de quem sentou aqui."', 'Ninguém nunca sentou. Só o Seu Lino.'] });
+    SPOTS.lino = { c: cb, x: 0, z: 0.25, y: 0, ry: Math.PI };
   }
   // escola
   district('ESCOLA GALILEU GALILEI', 'e no entanto, ela se move', 47, 100, 8);
@@ -221,11 +221,12 @@ export function addLandmarks() {
     });
   }
   // Fábrica de Voltas
-  district('FÁBRICA DE VOLTAS', 'movida a gente', -27, 152, 10);
   {
+    // a fábrica fica do lado norte da avenida: a rua de acesso que ia para o sul acabava no nada e foi tirada
     const i = nearestSample(MAIN, -16, 146), c = besideRoad(MAIN, i, -1, 7.5, 2.6);
+    district('FÁBRICA DE VOLTAS', 'movida a gente', latOf(c.d), lonOf(c.d), 10);
     lot(c, 11, 7.5);
-    reserve(-27, 152, 9);
+    reserve(latOf(c.d), lonOf(c.d), 7);
     BUILDS.push(() => {
       bWarehouse(c, { w: 11, d: 7.5, h: 5.6, sign: 'FÁBRICA DE VOLTAS', graffiti: '6x1 NÃO' });
       chimney(c, -3.2, -2.2, 11); chimney(c, -0.8, -2.6, 9.5, 0.45);
@@ -257,7 +258,7 @@ export function addLandmarks() {
       const um = [[-33, 222, '#f4f4ef', '#66bde6'], [-35.5, 226, '#f3c258', '#c25959'], [-34, 238, '#f4f4ef', '#de794e'], [-36.5, 242, '#8cc48c', '#f4f4ef'], [-33.4, 252, '#f4f4ef', '#c25959']];
       for (const [la, lo, c1, c2] of um) { const uc = beach(la, lo, rand() * 360); umbrella(uc, 0, 0, c1, c2); towel(uc, 0.6, 0.4, rand() * 3, pickR(['#66bde6', '#c25959', '#f3c258', '#8cc48c'])); addCircle(uc.d, 0.3); }
       for (const [la, lo, hd] of [[-36.5, 207, 60], [-37.5, 211, 100]]) { const bc = beach(la, lo, hd); boat(bc, 0, 0, 0, { color: '#3f8fc2', y: -0.25 }); addBoxCollider(bc, 4.2, 1.6); }
-      for (const [la, lo] of [[-26.6, 210], [-26.8, 224], [-26.6, 240], [-27, 252], [-30.5, 205], [-31, 257]]) { const pc = beach(la, lo, rand() * 360); palm(pc, 0, 0, rr(0.9, 1.15)); addCircle(pc.d, 0.4); }
+      for (const [la, lo] of [[-30.4, 210], [-30.6, 224], [-30.4, 238], [-30.8, 252], [-31, 205], [-31.4, 257]]) { const pc = beach(la, lo, rand() * 360); palm(pc, 0, 0, rr(0.9, 1.15)); addCircle(pc.d, 0.4); }
       const sc = beach(-27.2, 230.6, 0); // de frente para a avenida, de onde a gente chega
       signPost(sc, 0, 0, texSign('PRAIA', '#66bde6', '#f4f4ef', { w: 256, h: 128 }), 1.0, 0.5);
       interact(sc, 0, 1.6, 0.2, { name: 'PLACA', lines: ['PRAIA DO INTERVALO — aberta aos domingos.', '(Domingos suspensos até segunda ordem.)'] });

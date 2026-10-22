@@ -154,6 +154,39 @@ export function roadsAt(d, pad = 0.6) {
   }
   return _ra;
 }
+// esquinas arredondadas (polígono da calçada no plano tangente): o chão fica embaixo e os pés pisam em cima
+const CORNER_AREAS = [];
+export function addCornerArea(inner, outer, tops, topsOut = tops) {
+  const n = inner.length, c = new THREE.Vector3();
+  for (const p of inner) c.add(p); for (const p of outer) c.add(p); c.normalize();
+  const ex = new THREE.Vector3(0, 1, 0).cross(c); if (ex.lengthSq() < 1e-6) ex.set(1, 0, 0); ex.normalize();
+  const ey = c.clone().cross(ex);
+  const pr = (p) => [p.dot(ex) * R, p.dot(ey) * R];
+  // contorno: curva de dentro e de fora (de trás para a frente); o topo de cada vértice vem do passo da curva
+  const poly = [], top = [];
+  for (let i = 0; i < n; i++) { poly.push(pr(inner[i])); top.push(tops[i]); }
+  for (let i = n - 1; i >= 0; i--) { poly.push(pr(outer[i])); top.push(topsOut[i]); }
+  let rad = 0; for (const p of [...inner, ...outer]) rad = Math.max(rad, Math.acos(clamp(p.dot(c), -1, 1)) * R);
+  CORNER_AREAS.push({ c, ex, ey, poly, top, rad });
+}
+// { top, dist } se d está na esquina (ou a menos de 'pad' da borda dela)
+const _ca = { top: 0, dist: 0 };
+export function cornerAt(d, pad = 0) {
+  for (const a of CORNER_AREAS) {
+    if (Math.acos(clamp(d.dot(a.c), -1, 1)) * R > a.rad + pad) continue;
+    const x = d.dot(a.ex) * R, y = d.dot(a.ey) * R, P = a.poly;
+    let ins = false, bd = 1e9, bt = a.top[0];
+    for (let i = 0, j = P.length - 1; i < P.length; j = i++) {
+      const [xi, yi] = P[i], [xj, yj] = P[j];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) ins = !ins;
+      const ex = xj - xi, ey = yj - yi, t = clamp(((x - xi) * ex + (y - yi) * ey) / (ex * ex + ey * ey || 1e-9), 0, 1);
+      const dd = Math.hypot(xi + ex * t - x, yi + ey * t - y);
+      if (dd < bd) { bd = dd; bt = lerp(a.top[i], a.top[j], t); }
+    }
+    if (ins || bd < pad) { _ca.top = bt; _ca.dist = ins ? 0 : bd; return _ca; }
+  }
+  return null;
+}
 // no cruzamento vale a rua mais baixa: o chão fica embaixo de todas
 export function meshClamp(d, h) {
   for (const r of roadsAt(d)) {
@@ -162,6 +195,9 @@ export function meshClamp(d, h) {
     if (r.dist < edge + 0.1) h = Math.min(h, r.h - 0.1);
     else h = Math.min(h, r.h + r.road.top + (r.road.sw ? 0.08 : -0.04));
   }
+  // calçada da esquina enterrada: o chão desce para baixo dela (e um pouco em volta)
+  const ca = cornerAt(d, 0.35);
+  if (ca) h = Math.min(h, ca.top - (ca.dist > 0 ? 0.06 : 0.25));
   return h;
 }
 // altura onde os pés pisam: chão (como desenhado), calçada, deck ou rampa
@@ -173,6 +209,8 @@ export function groundAt(d) {
     if (r.dist < rd.hw) h = Math.max(h, r.h + rd.top);
     else if (rd.sw > 0 && r.dist < rd.hw + rd.sw && !(r.lat > 0 ? s.cutR : s.cutL)) h = Math.max(h, r.h + rd.top + 0.13);
   }
+  const ca = cornerAt(d, 0);
+  if (ca) h = Math.max(h, ca.top);
   for (const p of PLATFORMS) {
     const v = p.test(d); if (v !== null) h = Math.max(h, v);
   }
