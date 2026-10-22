@@ -17,11 +17,38 @@ export function placeDir(d, fwd, o = {}) {
 }
 export function placeAt(lat, lon, heading, o = {}) { const d = dirOf(lat, lon); return placeDir(d, headingVec(d, heading), o); }
 // assenta uma peça (x, z) no chão de verdade: sobe ou desce o contexto até o pé encostar
-export function drop(c, x, z) {
+// e endireita a peça pela inclinação do chão ali (num lote grande, a 5 m do centro, o "em pé" do lote já está torto
+// uns 10°); plantas (radial) ficam sempre na vertical do planeta
+const _dq = new THREE.Quaternion(), _dy = new THREE.Vector3(), _dm = new THREE.Matrix4(), _dt = new THREE.Matrix4();
+export function groundNormal(up, out = new THREE.Vector3()) {
+  const e = 0.25 / R, a = tmpA.set(0, 1, 0);
+  if (Math.abs(up.y) > 0.9) a.set(1, 0, 0);
+  const t1 = tmpB.crossVectors(up, a).normalize(), t2 = tmpC.crossVectors(up, t1);
+  const h0 = groundAt(up);
+  const p1 = tmpD.copy(up).addScaledVector(t1, e).normalize(), h1 = groundAt(p1); p1.multiplyScalar(R + h1);
+  const p2 = tmpE.copy(up).addScaledVector(t2, e).normalize(), h2 = groundAt(p2); p2.multiplyScalar(R + h2);
+  const p0 = out.copy(up).multiplyScalar(R + h0);
+  p1.sub(p0); p2.sub(p0);
+  out.crossVectors(p1, p2).normalize();
+  if (out.dot(up) < 0) out.negate();
+  return out;
+}
+const tmpA = new THREE.Vector3(), tmpB = new THREE.Vector3(), tmpC = new THREE.Vector3(), tmpD = new THREE.Vector3(), tmpE = new THREE.Vector3();
+export function drop(c, x, z, o = {}) {
   const p = ctxPoint(c, x, 0, z), up = p.clone().normalize();
-  const dh = p.length() - R - groundAt(up);
-  if (dh > 0.6 || dh < -0.35 || Math.abs(dh) < 0.01) return c;
-  return subCtx(c, 0, -dh, 0);
+  let dh = p.length() - R - groundAt(up);
+  if (dh > (o.max || 1.2) || dh < -(o.max || 1.0)) dh = 0;
+  // "em pé" que a peça deveria ter: normal do chão (até 18° do raio) ou o raio
+  const want = o.radial ? up.clone() : groundNormal(up);
+  if (want.angleTo(up) > 0.31) want.copy(up);
+  _dy.setFromMatrixColumn(c.W, 1).normalize();
+  if (Math.abs(dh) < 0.01 && _dy.angleTo(want) < 0.01) return c;
+  _dq.setFromUnitVectors(_dy, want);
+  const foot = p.addScaledVector(up, -dh);
+  // gira em volta do pé e desce/sobe até o chão
+  _dm.makeTranslation(-foot.x, -foot.y, -foot.z).premultiply(_dt.makeRotationFromQuaternion(_dq)).premultiply(_dt.makeTranslation(foot.x, foot.y, foot.z));
+  _dm.multiply(_dt.makeTranslation(-up.x * dh, -up.y * dh, -up.z * dh));
+  return Object.assign({}, c, { W: _dm.clone().multiply(c.W) });
 }
 // sub-contexto deslocado dentro de outro objeto
 export function subCtx(c, x, y, z, ry = 0) {

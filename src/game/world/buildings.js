@@ -234,7 +234,7 @@ export function bBeachKiosk(c, s) {
   K.board(c, 0, 1.95, 0.95, 2.2, 0.4, texSign(s.sign || 'QUIOSQUE', '#66bde6', '#f4f4ef', { font: 'lbl' }), {});
 }
 export function bGuardBooth(c) {
-  K.box(c, 0, 0, 0, 1.4, 2.3, 1.4, '#e9e6dc', { id: 4, pat: 8 });
+  K.box(c, 0, -0.8, 0, 1.4, 3.1, 1.4, '#e9e6dc', { id: 4, pat: 8 });
   K.box(c, 0, 2.3, 0, 1.7, 0.15, 1.7, '#4b5658', { id: 5 });
   K.pl(c, 0, 1.5, 0.71, 0.9, 0.7, texWin('glass'), { id: 6 });
   K.pl(c, 0.71, 1.5, 0, 0.9, 0.7, texWin('glass'), { id: 6, ry: Math.PI / 2 });

@@ -216,10 +216,12 @@ export function buildRoads() {
 }
 // esquinas: onde uma rua termina em outra, o meio-fio faz uma curva de uma calçada até a outra
 // ponto mais próximo entre as retas a + t·u e b + s·v (no plano tangente)
-function meet(a, u, b, v) {
+function meet(a, u, b, v, lim = 0) {
   const w = tmpV.subVectors(a, b), uu = u.dot(u), uv = u.dot(v), vv = v.dot(v), uw = u.dot(w), vw = v.dot(w), den = uu * vv - uv * uv;
   if (Math.abs(den) < 1e-6) return a.clone().add(b).multiplyScalar(0.5);
   const t = (uv * vw - vv * uw) / den, q = (uu * vw - uv * uw) / den;
+  // encontro atrás de uma das bordas ou longe demais: a esquina vira reta
+  if (lim && (t < 0 || q < 0 || t * Math.sqrt(uu) > lim || q * Math.sqrt(vv) > lim)) return null;
   return a.clone().addScaledVector(u, t).add(b.clone().addScaledVector(v, q)).multiplyScalar(0.5);
 }
 const bez = (a, q, b, u, out) => out.copy(a).multiplyScalar((1 - u) * (1 - u)).addScaledVector(q, 2 * u * (1 - u)).addScaledVector(b, u * u);
@@ -264,27 +266,34 @@ export function buildCorners() {
         // direções das bordas, apontando para a esquina
         const uM = sk.t.clone().multiplyScalar(-dir);
         const vJ = sj.t.clone(); if (vJ.dot(tmpV3.subVectors(A, D)) < 0) vJ.negate();
-        const Qi = meet(A, uM, D, vJ).normalize(), Qo = meet(B, uM, C2, vJ).normalize();
-        const yT = Math.max(sk.h + M.top + 0.13 + M.level * 0.004, sj.h + J.top + 0.13 + J.level * 0.004) - 0.002;
-        const yR = Math.max(sk.h + M.top, sj.h + J.top) + 0.004, yB = Math.min(sk.h, sj.h) - 0.3;
+        const LIM = 5 / R;
+        let Qi = meet(A, uM, D, vJ, LIM), Qo = meet(B, uM, C2, vJ, LIM);
+        if (!Qi || !Qo) { Qi = A.clone().add(D).multiplyScalar(0.5); Qo = B.clone().add(C2).multiplyScalar(0.5); }
+        Qi.normalize(); Qo.normalize();
+        // alturas de cada lado: a esquina sobe/desce de uma rua para a outra em vez de flutuar sobre a mais baixa
+        const yTM = sk.h + M.top + 0.13 + M.level * 0.004, yTJ = sj.h + J.top + 0.13 + J.level * 0.004;
+        const yRM = sk.h + M.top + 0.004, yRJ = sj.h + J.top + 0.004;
+        const yT = (u) => lerp(yTM, yTJ, sstep(0, 1, u)) - 0.002, yR = (u) => lerp(yRM, yRJ, sstep(0, 1, u));
+        const yB = Math.min(sk.h, sj.h) - 0.3;
         const g = chunkGeo(chunkOf(sk.d), 'road');
         const inner = [], outer = [];
         for (let u = 0; u <= NS; u++) { inner.push(bez(A, Qi, D, u / NS, new THREE.Vector3()).normalize()); outer.push(bez(B, Qo, C2, u / NS, new THREE.Vector3()).normalize()); }
         const at = (d, y) => d.clone().multiplyScalar(R + y);
-        const qR = at(Qi, yR);
+        const qR = at(Qi, Math.min(yRM, yRJ));
         for (let u = 0; u < NS; u++) {
+          const u0 = u / NS, u1 = (u + 1) / NS;
           const i0p = inner[u], i1p = inner[u + 1], o0 = outer[u], o1 = outer[u + 1];
           // calçada
-          quadUp(g, at(i0p, yT), at(o0, yT), at(o1, yT), at(i1p, yT), RC.side, up, { pat: 6, id: 2 });
+          quadUp(g, at(i0p, yT(u0)), at(o0, yT(u0)), at(o1, yT(u1)), at(i1p, yT(u1)), RC.side, up, { pat: 6, id: 2 });
           // asfalto no canto de dentro da curva
-          quadUp(g, qR, at(i0p, yR), at(i1p, yR), qR, RC.asphalt, up, { id: 1 });
+          quadUp(g, qR, at(i0p, yR(u0)), at(i1p, yR(u1)), qR, RC.asphalt, up, { id: 1 });
           // meio-fio (para o lado do asfalto) e borda de fora
           const toQ = tmpV3.subVectors(Qi, i0p);
-          const a0 = at(i0p, yR - 0.01), a1 = at(i1p, yR - 0.01), a2 = at(i1p, yT), a3 = at(i0p, yT);
+          const a0 = at(i0p, yR(u0) - 0.4), a1 = at(i1p, yR(u1) - 0.4), a2 = at(i1p, yT(u1)), a3 = at(i0p, yT(u0));
           const nC = new THREE.Vector3().subVectors(a1, a0).cross(new THREE.Vector3().subVectors(a3, a0));
           if (nC.dot(toQ) >= 0) g.quad(a0, a1, a2, a3, RC.curb, { id: 2 }); else g.quad(a0, a3, a2, a1, RC.curb, { id: 2 });
           const awayO = tmpV3.subVectors(o0, Qi);
-          const b0 = at(o0, yB), b1 = at(o1, yB), b2 = at(o1, yT), b3 = at(o0, yT);
+          const b0 = at(o0, yB), b1 = at(o1, yB), b2 = at(o1, yT(u1)), b3 = at(o0, yT(u0));
           const nO = new THREE.Vector3().subVectors(b1, b0).cross(new THREE.Vector3().subVectors(b3, b0));
           if (nO.dot(awayO) >= 0) g.quad(b0, b1, b2, b3, RC.sideFace, { id: 2 }); else g.quad(b0, b3, b2, b1, RC.sideFace, { id: 2 });
         }

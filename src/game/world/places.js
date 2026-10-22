@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { R } from '../core/config.js';
 import { arcDist, dirOf, tmpV } from '../core/math.js';
 import { ctxDir, ctxPoint, placeDir, subCtx } from './kit.js';
-import { addZone, H } from './terrain.js';
+import { addZone, groundAt, H } from './terrain.js';
 
 export const FOOT = [];          // pegadas ocupadas (para o loteamento automático não sobrepor)
 const RESERVED = [];      // áreas sem loteamento automático
@@ -44,7 +44,7 @@ export function addCircleLocal(c, x, z, r) { addCircle(ctxDir(c, x, z), r); }
 // colisor de móvel: só vale se a peça está no chão (vaso em cima de balcão ou telhado não bloqueia a rua)
 export function solid(c, x, z, r, w, d, ry = 0) {
   const p = ctxPoint(c, x, 0, z), up = p.clone().normalize();
-  if (p.length() - R - H(up) > 0.6) return;
+  if (p.length() - R - groundAt(up) > 0.6) return;
   if (w) addBoxCollider(subCtx(c, x, 0, z, ry), w, d); else addCircle(up, r);
 }
 // lote: registra zona aplainada + pegada + colisor, e agenda a construção
@@ -65,7 +65,8 @@ export function besideRoad(rd, i, side, depth, setback = 0.4, o = {}) {
   const lat = side * (rd.hw + rd.sw + setback + depth / 2);
   const d = s.d.clone().addScaledVector(s.s, lat / R).normalize();
   const fwd = s.s.clone().multiplyScalar(-side);
-  const h = o.h !== undefined ? o.h : H(d);
+  // o lote fica no nível da calçada: a frente do prédio encosta nela, sem degrau nem vão
+  const h = o.h !== undefined ? o.h : rd.sw > 0 ? s.h + rd.top + 0.15 : H(d);
   return placeDir(d, fwd, { h });
 }
 // ponto na calçada (para postes, lixeiras, placas)

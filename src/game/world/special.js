@@ -32,7 +32,7 @@ export function fieldLine(c, x0, z0, x1, z1) {
   if (n.dot(up) >= 0) g.quad(A, B, Cc, D, C('#f4f4ef'), { id: 0 }); else g.quad(A, D, Cc, B, C('#f4f4ef'), { id: 0 });
 }
 export function poolAt(c, w, d) {
-  K.box(c, 0, -0.35, 0, w + 0.6, 0.45, d + 0.6, '#e9ebe4', { id: 5, pat: 6 });
+  K.box(c, 0, -1.0, 0, w + 0.6, 1.1, d + 0.6, '#e9ebe4', { id: 5, pat: 6 });
   const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), waterMat.clone());
   const dep = new Float32Array(4).fill(1.3); m.geometry.setAttribute('aDepth', new THREE.BufferAttribute(dep, 1));
   m.material.uniforms = THREE.UniformsUtils.clone(waterMat.uniforms);

@@ -108,14 +108,15 @@ export function H(d, info) {
     if (rw > 0) h = lerp(h, rn.h, rw);
   }
   const x = d.x * R, y = d.y * R, z = d.z * R;
-  let bz = null, bw = 0;
-  ZHASH.near(x, y, z, (zn) => { const w = zoneWeight(zn, x, y, z); if (w > bw) { bw = w; bz = zn; } });
+  let bz = null, bw = 0, bs = 0;
+  // prio: zona dentro de outra (o terraço da piscina no topo do morro) ganha no empate e a rua não puxa ela
+  ZHASH.near(x, y, z, (zn) => { const w = zoneWeight(zn, x, y, z), sc = w * zn.prio; if (sc > bs) { bs = sc; bw = w; bz = zn; } });
   // o lote é plano de verdade (plano tangente no centro), não uma casca curva: assim as peças retas assentam no chão
   if (bz) {
     const n = bz.pn, zh = n ? (R + bz.h) / Math.max(0.5, d.x * n.x + d.y * n.y + d.z * n.z) - R : bz.h;
     h = lerp(h, zh, bw); lw = bw; lk = bz.kind;
     // a calçada manda: lote nenhum sobe por cima dela
-    if (rn) { const rd = rn.road, w2 = 1 - sstep(rd.hw + rd.sw, rd.hw + rd.sw + 0.8, rn.dist); if (w2 > 0) h = lerp(h, rn.h, w2); }
+    if (rn && bz.prio === 1) { const rd = rn.road, w2 = 1 - sstep(rd.hw + rd.sw, rd.hw + rd.sw + 0.8, rn.dist); if (w2 > 0) h = lerp(h, rn.h, w2); }
   }
   if (info) { info.road = rw; info.lot = lw; info.kind = lk; }
   return h;
@@ -128,7 +129,7 @@ export function addZone(d, fwd, hw, hd, o = {}) {
   const h = o.h !== undefined ? o.h : H(up);
   // pn: normal do plano do lote (o "cima" de quem constrói nele); plane: false = casca curva
   const pn = o.plane === false ? null : (o.pn || up).clone().normalize();
-  const zn = { x: up.x * R, y: up.y * R, z: up.z * R, d: up, r, f, hw, hd, h, pn, m: o.m ?? 1.6, kind: o.kind || 'paved', round: !!o.round };
+  const zn = { x: up.x * R, y: up.y * R, z: up.z * R, d: up, r, f, hw, hd, h, pn, m: o.m ?? 1.6, kind: o.kind || 'paved', round: !!o.round, prio: o.prio || 1 };
   ZONES.push(zn);
   ZHASH.insert(zn.x, zn.y, zn.z, Math.hypot(hw, hd) + zn.m, zn);
   return zn;
@@ -141,22 +142,36 @@ export function trailDist(d) {
   return bd - w * 0.5;
 }
 // altura da malha do chão: debaixo da rua afunda; no anel em volta da calçada fica abaixo do topo dela
+// todas as ruas cuja faixa (asfalto + calçada + anel) cobre o ponto, cada uma com sua distância e altura
+const _ra = [];
+export function roadsAt(d, pad = 0.6) {
+  _ra.length = 0;
+  const x = d.x * R, y = d.y * R, z = d.z * R, seen = new Set();
+  RHASH.near(x, y, z, (s) => { if (s.road.kind !== 'trail') seen.add(s.road); });
+  for (const rd of seen) {
+    const rn = roadNear(d, (r) => r === rd);
+    if (rn && rn.dist < rd.hw + rd.sw + pad) _ra.push({ road: rd, dist: rn.dist, h: rn.h, lat: rn.lat, i: rn.i });
+  }
+  return _ra;
+}
+// no cruzamento vale a rua mais baixa: o chão fica embaixo de todas
 export function meshClamp(d, h) {
-  const rn = roadNear(d, (r) => r.kind !== 'trail' && !r.noFlat);
-  if (!rn) return h;
-  const edge = rn.road.hw + rn.road.sw;
-  if (rn.dist < edge + 0.1) return Math.min(h, rn.h - 0.1);
-  if (rn.dist < edge + 0.6) return Math.min(h, rn.h + rn.road.top + (rn.road.sw ? 0.08 : -0.04));
+  for (const r of roadsAt(d)) {
+    if (r.road.noFlat) continue;
+    const edge = r.road.hw + r.road.sw;
+    if (r.dist < edge + 0.1) h = Math.min(h, r.h - 0.1);
+    else h = Math.min(h, r.h + r.road.top + (r.road.sw ? 0.08 : -0.04));
+  }
   return h;
 }
 // altura onde os pés pisam: chão (como desenhado), calçada, deck ou rampa
 export function groundAt(d) {
   let h = meshClamp(d, H(d));
-  const rn = roadNear(d, (r) => r.kind !== 'trail');
-  if (rn) {
-    const rd = rn.road, s = rd.S[rn.i];
-    if (rn.dist < rd.hw) h = Math.max(h, rn.h + rd.top);
-    else if (rd.sw > 0 && rn.dist < rd.hw + rd.sw && !(rn.lat > 0 ? s.cutR : s.cutL)) h = Math.max(h, rn.h + rd.top + 0.13);
+  // pisa no mais alto do que estiver embaixo: asfalto de qualquer rua ou calçada não cortada
+  for (const r of roadsAt(d, 0)) {
+    const rd = r.road, s = rd.S[r.i];
+    if (r.dist < rd.hw) h = Math.max(h, r.h + rd.top);
+    else if (rd.sw > 0 && r.dist < rd.hw + rd.sw && !(r.lat > 0 ? s.cutR : s.cutL)) h = Math.max(h, r.h + rd.top + 0.13);
   }
   for (const p of PLATFORMS) {
     const v = p.test(d); if (v !== null) h = Math.max(h, v);
