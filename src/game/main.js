@@ -24,7 +24,7 @@ import { outfit } from './story/outfit.js';
 import { storyProps } from './story/props.js';
 import { actor, ACTORS, spawnActors, updateActors } from './play/actors.js';
 import { setMusic } from './play/audio.js';
-import { cam, snapCamera, updateCamera } from './play/camera.js';
+import { cam, camBlocked, snapCamera, updateCamera } from './play/camera.js';
 import { autoColliders, colliderLines, hashColliders, insideTall, pushOut } from './play/collide.js';
 import { updateSky } from './play/daylight.js';
 import { updateDialog } from './play/dialog.js';
@@ -119,7 +119,7 @@ export async function boot() {
   window.__ready = true;
 }
 window.__gira = {
-  state, player, ACTORS, cam, camera, SPOTS, DISTRICTS, PAGES, PAGEOBJ, COLLIDERS, ATL, FACE, renderer, TITLE, insideTall, pushOut, groundAt, latOf, lonOf,
+  state, player, ACTORS, cam, camera, SPOTS, DISTRICTS, PAGES, PAGEOBJ, COLLIDERS, ATL, FACE, renderer, TITLE, insideTall, pushOut, groundAt, latOf, lonOf, camBlocked,
   go(la, lo, hd) { teleport(dirOf(la, lo), hd || 0); },
   near(id, back = 2.4) { const a = actor(id); const d = offsetDir(a.d, a.fwd, back); teleport(d, 0); player.fwd.copy(a.d).sub(player.d).normalize(); player.camFwd.copy(player.fwd); snapCamera(); },
   day(n) { state.day = n; refreshTasks(); },
@@ -129,10 +129,10 @@ window.__gira = {
   mood(m) { setHeroMood(m); },
   gesture(g) { heroGesture(g); },
   missions: MISSION_DEBUG,
-  // câmera de teste: lab(ângulo em volta da Duda, distância, altura, fov); lab() volta ao normal
   // depuração: colisores desenhados em volta da Duda (true liga, false desliga)
   colisao(on = true) { if (this._coll) { scene.remove(this._coll); this._coll = null; } if (on) { this._coll = colliderLines(player.d, 25); scene.add(this._coll); } },
   // colisão automática do planeta todo de uma vez (testes)
   autoAll() { while (!autoColliders(player.d, 1000)); },
-  lab(a, d = 3, h = 0, fov = 30, y = 0.75) { cam.shot = a === undefined ? null : { kind: 'lab', a, d, h, fov, y }; },
+  // câmera de teste: lab(ângulo em volta da Duda, distância, altura, fov, altura do alvo, id de outro ator); lab() volta ao normal
+  lab(a, d = 3, h = 0, fov = 30, y = 0.75, id) { cam.shot = a === undefined ? null : { kind: 'lab', a, d, h, fov, y, who: id ? actor(id) : null }; },
 };

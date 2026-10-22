@@ -112,7 +112,7 @@ export const NPCS = [
       strike: D(['Desci da roda. Minhas pernas tão tremendo.', 'Não é cansaço. É novidade.']),
       sunday: D(['Olha ali. A roda tá girando sozinha.', 'Quinze anos achando que era eu.'])
     } },
-  { id: 'tonho', name: 'SEU TONHO', tag: '#66bde6', voice: 105, cast: 'tonho', at: { pier: true },
+  { id: 'tonho', name: 'SEU TONHO', tag: '#66bde6', voice: 105, cast: 'tonho', at: { pier: true }, turnMax: 0.45,
     bubble: { 1: 'Peixe não morde em dia útil.', 2: 'Tô pescando um domingo.', 3: 'O mar não bate ponto.', 4: 'Giro só a carretilha.', 5: 'O mar não tem relógio.', 6: 'Amanhã o peixe vem.', 7: 'Nem domingo, nem peixe.', strike: 'Agora o peixe vem.', sunday: 'Mordeu! Mordeu!' },
     lines: {
       1: D(['Opa. Tonho, pescador. Ou quase.', 'Venho aqui todo intervalo de três minutos.', 'Em vinte anos pesquei uma bota. Era minha.']),

@@ -276,8 +276,10 @@ export function makeChar(spec) {
       add(DOME, HM(0, hr * 0.32, 0.0, hr * 1.12, hr * 0.56, hr * 1.2), hcol, 6, BI.head);
       add(cylG(14), HM(0, hr * 0.36, hr * 0.86, hr * 0.55, hr * 0.06, hr * 0.42, 0, 0.18), hcol, 7, BI.head);
     } else if (hat.kind === 'bucket') {
-      add(cylG(14, 0.86), HM(0, hr * 0.32, 0, hr * 1.1, hr * 0.68, hr * 1.1), hcol, 6, BI.head);
-      add(cylG(16, 0.72), HM(0, hr * 0.18, 0, hr * 1.62, hr * 0.2, hr * 1.62), hat.brim || hcol, 7, BI.head);
+      // no alto da cabeça e um tico jogado para trás: a aba fica acima das sobrancelhas e os olhos aparecem
+      const tb = -0.08, by = hr * 0.36, cy = hr * 0.4;
+      add(cylG(14, 0.84), HM(0, by + cy * Math.cos(tb), cy * Math.sin(tb), hr * 1.1, hr * 0.8, hr * 1.1, 0, tb), hcol, 6, BI.head);
+      add(cylG(16, 0.74), HM(0, by, 0, hr * 1.5, hr * 0.14, hr * 1.5, 0, tb), hat.brim || hcol, 7, BI.head);
     } else if (hat.kind === 'hard') {
       add(DOME, HM(0, hr * 0.24, 0, hr * 1.16, hr * 0.98, hr * 1.18), hcol, 6, BI.head);
       add(cylG(16), HM(0, hr * 0.22, hr * 0.06, hr * 1.32, hr * 0.06, hr * 1.36), hcol, 7, BI.head);

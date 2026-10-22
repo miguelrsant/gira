@@ -62,32 +62,43 @@ function talkPose(a, P, L) {
 // algo do cenário entre a câmera e os dois? (só na hora de escolher o enquadramento)
 const _ray = new THREE.Raycaster(), _rd = V3();
 let _rayMeshes = null;
-function camBlocked(from, to) {
+function rayHits(from, to) {
   if (!_rayMeshes) { _rayMeshes = []; for (const ch of CH) for (const k of ['main', 'small', 'fol']) if (ch.mesh[k]) _rayMeshes.push(ch.mesh[k]); }
   _rd.subVectors(to, from); const len = _rd.length(); if (len < 0.05) return false;
   _ray.set(from, _rd.divideScalar(len)); _ray.near = 0.15; _ray.far = len;
-  return _ray.intersectObjects(_rayMeshes, false).length > 0 || insideTall(_rd.copy(to).normalize(), 0.2);
+  return _ray.intersectObjects(_rayMeshes, false).length > 0;
 }
+// o raio vai nos dois sentidos: com a câmera enfiada numa parede ou num muro, o raio que sai dela só cruza faces
+// de dentro e não acusava nada (a conversa ficava vista de dentro da parede)
+export function camBlocked(P, head) { return insideTall(_rd.copy(P).normalize(), 0.2) || rayHits(P, head) || rayHits(head, P); }
 export function pickSide(a) {
   const up = player.d;
   const ab = _c.s.subVectors(a.ch.rig.position, player.pos); ab.addScaledVector(up, -ab.dot(up)).normalize();
   const side = _c.w.crossVectors(up, ab);
   const mid = _c.t.addVectors(a.ch.rig.position, player.pos).multiplyScalar(0.5);
-  const s0 = side.dot(_c.a.subVectors(camera.position, mid)) >= 0 ? 1 : -1;
+  let s0 = side.dot(_c.a.subVectors(camera.position, mid)) >= 0 ? 1 : -1;
+  // quem conversa sem virar o corpo para a Duda (o Seu Tonho pescando, gente sentada olhando por cima do ombro):
+  // a câmera começa pelo lado do rosto dele (quem está em pé vira de frente logo no começo da conversa)
+  const turns = a.n.seat === undefined && !a.n.wheel && a.ch.st.pose !== 'ground' && !a.n.turnMax;
+  if (!a.pet && !turns) { const sf = _c.b.setFromMatrixColumn(a.ch.bones[2].matrixWorld, 2).dot(side); if (Math.abs(sf) > 0.35) s0 = Math.sign(sf); }
   if (a.n.wheel) {
     const ax = _c.f.setFromMatrixColumn(SPOTS.wheel.W, 0).normalize();
     cam.tmode = 'wheel';
     return _c.a.subVectors(player.pos, a.ch.rig.position).dot(ax) >= 0 ? 1 : -1;
   }
   const P = V3(), L = V3(), hA = V3(), hB = V3();
+  let best = s0, bestMode = 'side', bestN = 3;
   for (const [sg, mode] of [[s0, 'side'], [-s0, 'side'], [s0, 'over'], [-s0, 'over']]) {
     cam.side = sg; cam.tmode = mode;
     talkPose(a, P, L);
     hA.copy(player.head); headPos(a, hB);
-    if (!camBlocked(P, hA) && !camBlocked(P, hB)) return sg;
+    // nenhuma das duas cabeças tapada: serve; se todos tapam alguma, fica o que tapa menos
+    const n = camBlocked(P, hA) + camBlocked(P, hB);
+    if (!n) return sg;
+    if (n < bestN) { bestN = n; best = sg; bestMode = mode; }
   }
-  cam.tmode = 'side';
-  return s0;
+  cam.tmode = bestMode;
+  return best;
 }
 // a câmera gira em arco de trás da Duda até a frente dela (sem atravessar a cabeça)
 function introPose(sh, P, L, dt) {
@@ -113,10 +124,10 @@ function lookPose(p, P, L) {
   P.copy(player.head).addScaledVector(toIt, -2.3).addScaledVector(side, 0.9).addScaledVector(up, 0.5);
   L.copy(p).lerp(player.head, 0.25);
 }
-// câmera de teste (window.__gira.lab): presa à Duda, num ângulo fixo em volta dela
+// câmera de teste (window.__gira.lab): presa à Duda (ou a outro ator), num ângulo fixo em volta dela
 function labPose(sh, P, L) {
-  const up = player.d, f = player.fwd, r = _c.w.crossVectors(up, f).normalize();
-  const c = _c.s.copy(player.d).multiplyScalar(R + groundAt(player.d) + (sh.y ?? 0.75));
+  const w = sh.who, up = w ? w.up || w.d : player.d, f = w ? w.fwd : player.fwd, r = _c.w.crossVectors(up, f).normalize();
+  const c = w ? _c.s.copy(w.ch.rig.position).addScaledVector(up, sh.y ?? 0.75) : _c.s.copy(player.d).multiplyScalar(R + groundAt(player.d) + (sh.y ?? 0.75));
   P.copy(c).addScaledVector(f, Math.cos(sh.a) * sh.d).addScaledVector(r, Math.sin(sh.a) * sh.d).addScaledVector(up, sh.h ?? 0);
   L.copy(c);
 }
@@ -147,7 +158,7 @@ export function updateCamera(dt) {
   else if (sh.kind === 'talk') { talkPose(sh.a, P, L); rp = 4.2; rl = 5; }
   else if (sh.kind === 'intro') { introPose(sh, P, L, dt); rp = 14; rl = 6; }
   else if (sh.kind === 'look') { lookPose(sh.p, P, L); rp = 4; rl = 5; }
-  else if (sh.kind === 'lab') { labPose(sh, P, L); rp = rl = 400; }
+  else if (sh.kind === 'lab') { labPose(sh, P, L); rp = rl = ru = 400; if (sh.who) Up.copy(sh.who.up || sh.who.d); }
   else if (sh.kind === 'orbit') {
     // de volta ao espaço, como na abertura: o planeta em pé, girando sem ninguém empurrar
     sh.t += dt;

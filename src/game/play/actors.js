@@ -24,9 +24,10 @@ import { state } from './state.js';
 export const ACTORS = [];
 function resolveAt(at) {
   if (at.pier) {
-    const S = PIER.S, s = S[S.length - 2];
-    const d = s.d.clone().addScaledVector(s.s, -0.2 / R).normalize();
-    return { d, fwd: s.t.clone(), h: s.h + PIER.top, up: null, y: 1 };
+    // na ponta do píer, na beira do lado do balde, de frente para a água (a vara fica por cima do mar, não da ilha)
+    const S = PIER.S, s = S[S.length - 3];
+    const d = s.d.clone().addScaledVector(s.s, 0.6 / R).normalize();
+    return { d, fwd: s.s.clone(), h: s.h + PIER.top, up: null, y: 1 };
   }
   const sp = SPOTS[at.spot];
   let c, x, y, z, ry;
@@ -283,23 +284,39 @@ export function updateActors(dt, t) {
     }
     if (n.id === 'bia' && a.dist < 6 && a.waved !== dayKey && state.mode === 'play' && !a.talking) { a.waved = dayKey; st.act = 'wave'; a.actT = 2.4; }
     if (a.actT > 0) { a.actT -= dt; if (a.actT <= 0) st.act = state.strike ? 'protest' : state.sunday ? null : a.baseAct; }
-    // olhar para a Duda
+    // olhar para a Duda: na frente, a cabeça acompanha; atrás e perto, olha por cima do ombro para o lado dela
     const up = a.up || a.d;
-    if (a.dist < 5 && a.vis && state.mode !== 'title') {
+    const sees = a.dist < 5 && a.vis && state.mode !== 'title';
+    const canTurn = !ch.pet && n.seat === undefined && !n.wheel && st.pose !== 'ground';
+    // quem não vira o corpo inteiro (sentado, na roda, o Seu Tonho pescando) torce mais o tronco e o pescoço
+    const reach = canTurn && !n.turnMax ? 1.1 : 1.45;
+    if (sees) {
       _b.p.copy(ch.rig.position).addScaledVector(up, ch.pet ? 0.45 : ch.headY);
       _b.rel.subVectors(player.head, _b.p);
       _b.r.crossVectors(up, a.fwd);
       const lx = _b.rel.dot(_b.r), lz = _b.rel.dot(a.fwd), ly = _b.rel.dot(up);
       const yaw = Math.atan2(lx, lz);
-      st.lookT.yaw = Math.abs(yaw) < 2.0 ? clamp(yaw, -1.1, 1.1) : 0;
-      st.lookT.pitch = clamp(-Math.atan2(ly, Math.hypot(lx, lz)), -0.35, 0.45);
+      if (ch.pet || (Math.abs(yaw) >= 2.0 && a.dist > 3.2)) st.lookT.yaw = Math.abs(yaw) < 2.0 ? clamp(yaw, -1.1, 1.1) : 0;
+      else {
+        // bem atrás: fica no ombro que já escolheu (a cabeça não pula de um lado para o outro)
+        if (Math.abs(yaw) < 2.7 || !a.lookSide) a.lookSide = yaw < 0 ? -1 : 1;
+        st.lookT.yaw = Math.abs(yaw) <= reach ? yaw : a.lookSide * reach;
+      }
+      // olhando para baixo, a aba do chapéu cobre os olhos: só abaixa um pouco a cabeça
+      st.lookT.pitch = clamp(-Math.atan2(ly, Math.hypot(lx, lz)), -0.35, 0.22);
     } else { st.lookT.yaw = 0; st.lookT.pitch = 0; }
-    // vira de frente para conversar
-    const canTurn = !ch.pet && n.seat === undefined && !n.wheel && !n.at?.pier && st.pose !== 'ground';
-    if (a.talking && canTurn) {
+    // quem está em pé vira de frente para a Duda quando ela chega perto e para conversar, depois volta ao que fazia;
+    // sentado (banco, chão) ou dentro da roda, só o tronco e a cabeça viram
+    a.noticed = sees && !n.walker && !n.roam && state.mode === 'play' && a.dist < (a.noticed ? 3.4 : 2.6);
+    if ((a.talking || a.noticed) && canTurn) {
       const dir = _b.rel.copy(player.d).addScaledVector(a.d, -player.d.dot(a.d)).normalize();
+      // o Seu Tonho não larga a vara: vira só até o ponto em que ela continua por cima da água
+      if (n.turnMax && a.baseFwd) {
+        const off = Math.atan2(_b.r.crossVectors(a.baseFwd, dir).dot(a.d), a.baseFwd.dot(dir));
+        if (Math.abs(off) > n.turnMax) dir.copy(a.baseFwd).applyAxisAngle(a.d, Math.sign(off) * n.turnMax);
+      }
       const ang = Math.atan2(_b.r.crossVectors(a.fwd, dir).dot(a.d), a.fwd.dot(dir));
-      a.fwd.applyAxisAngle(a.d, ang * (1 - Math.exp(-dt * 7))).addScaledVector(a.d, -a.fwd.dot(a.d)).normalize();
+      a.fwd.applyAxisAngle(a.d, ang * (1 - Math.exp(-dt * (a.talking ? 7 : 3)))).addScaledVector(a.d, -a.fwd.dot(a.d)).normalize();
     } else if (a.baseFwd && !n.roam && canTurn) {
       const ang = Math.atan2(_b.r.crossVectors(a.fwd, a.baseFwd).dot(a.d), a.fwd.dot(a.baseFwd));
       if (Math.abs(ang) > 0.01) a.fwd.applyAxisAngle(a.d, ang * (1 - Math.exp(-dt * 2.5))).addScaledVector(a.d, -a.fwd.dot(a.d)).normalize();
