@@ -8,7 +8,7 @@ import { texVending, texWin } from './textures.js';
 
 export const SM = { layer: 'small' };
 export function lampPost(c, x, z) {
-  c = drop(c, x, z);
+  c = drop(c, x, z, { radial: true });
   solid(c, x, z, 0.14);
   K.cyl(c, x, 0, z, 0.07, 3.6, '#4b5658', { n: 6, layer: 'small' });
   K.cyl(c, x, 3.55, z + 0.3, 0.05, 0.7, '#4b5658', { rx: Math.PI / 2, center: true, n: 5, layer: 'small' });
@@ -17,7 +17,7 @@ export function lampPost(c, x, z) {
 }
 // poste com fios: devolve o ponto de amarração
 export function utilPole(c, x, z) {
-  c = drop(c, x, z);
+  c = drop(c, x, z, { radial: true });
   solid(c, x, z, 0.18);
   K.cyl(c, x, 0, z, 0.11, 6.2, '#8d968f', { n: 7, top: 0.75, layer: 'small' });
   K.boxc(c, x, 5.6, z, 1.5, 0.1, 0.1, '#6f7a74', { layer: 'small' });
@@ -52,7 +52,7 @@ export function barrel(c, x, z, color = '#4f86b8') { c = drop(c, x, z); solid(c,
 function gasCyl(c, x, z) { solid(c, x, z, 0.2); K.cyl(c, x, 0, z, 0.18, 0.5, '#c25959', { n: 10, layer: 'small' }); K.sph(c, x, 0.5, z, 0.18, 0.1, 0.18, '#c25959', { layer: 'small', w: 8, h: 5 }); }
 export function rock(c, x, z, s = 1, y = 0) { if (s > 0.7) solid(c, x, z, s * 0.55); K.blob(c, x, y + s * 0.2, z, s * rr(0.6, 1.0), s * rr(0.35, 0.6), s * rr(0.6, 1.0), () => C(rand() < 0.5 ? '#a7aea6' : '#9aa39a'), { layer: 'main', sway: 0, det: 1, id: 7 }); }
 export function signPost(c, x, z, uv, w = 0.8, h = 0.8, ry = 0) {
-  c = drop(c, x, z);
+  c = drop(c, x, z, { radial: true });
   solid(c, x, z, 0.1);
   const s = subCtx(c, x, 0, z, ry);
   K.cyl(s, 0, 0, 0, 0.04, 2.4, '#7d8a88', { n: 5, layer: 'small' });
@@ -91,7 +91,7 @@ function bike(c, x, z, ry = 0) {
   K.boxc(s, 0.38, 0.85, 0, 0.05, 0.05, 0.4, '#4b5658', { layer: 'small' });
 }
 export function umbrella(c, x, z, c1 = '#f4f4ef', c2 = '#c25959') {
-  c = drop(c, x, z);
+  c = drop(c, x, z, { radial: true });
   solid(c, x, z, 0.1);
   K.cyl(c, x, 0, z, 0.04, 2.1, '#e9e6dc', { n: 5, layer: 'small' });
   const A = C(c1), B = C(c2);
@@ -148,4 +148,4 @@ function clothesline(c, x, z, len = 3) {
   K.boxc(c, x, 1.82, z, len, 0.015, 0.015, '#4b5658', SM);
   for (let i = 0; i < 4; i++) K.box(c, x - len / 2 + 0.5 + i * (len - 1) / 3, 1.25, z, 0.42, 0.55, 0.015, pickR(['#f4f4ef', '#66bde6', '#e7a58c', '#f3c258', '#8cc48c', '#c25959']), { id: 7, layer: 'small' });
 }
-export function mailbox(c, x, z) { c = drop(c, x, z); solid(c, x, z, 0.14); K.cyl(c, x, 0, z, 0.04, 1.0, '#4b5658', { n: 4, layer: 'small' }); K.box(c, x, 1.0, z, 0.32, 0.3, 0.42, '#c25959', { id: 5, layer: 'small' }); }
+export function mailbox(c, x, z) { c = drop(c, x, z, { radial: true }); solid(c, x, z, 0.14); K.cyl(c, x, 0, z, 0.04, 1.0, '#4b5658', { n: 4, layer: 'small' }); K.box(c, x, 1.0, z, 0.32, 0.3, 0.42, '#c25959', { id: 5, layer: 'small' }); }

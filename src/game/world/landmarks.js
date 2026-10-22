@@ -70,12 +70,12 @@ export function addLandmarks() {
       bTower(tc, {});
       const pc = drop(subCtx(c, -1.6, 0, 3.2), 0, 0); bPodium(pc); addBoxCollider(pc, 1.6, 1.4);
       // relógio de ponto
-      { const k = drop(c, 1.7, 3.7); K.box(k, 1.7, -0.5, 3.7, 0.5, 1.7, 0.4, '#4b5658', { id: 5, layer: 'small' }); K.pl(k, 1.7, 1.0, 3.91, 0.36, 0.36, texClock(), { id: 6 }); solid(k, 1.7, 3.7, 0, 0.5, 0.4); }
+      { const k = drop(c, 1.2, 3.7); K.box(k, 1.2, -0.5, 3.7, 0.5, 1.7, 0.4, '#4b5658', { id: 5, layer: 'small' }); K.pl(k, 1.2, 1.0, 3.91, 0.36, 0.36, texClock(), { id: 6 }); solid(k, 1.2, 3.7, 0, 0.5, 0.4); }
       for (const x of [-3.0, 3.0]) planter(c, x, 4.7, 1.2);
-      vending(c, 3.0, 3.75, 'foco');
+      vending(c, 2.15, 3.9, 'foco');
     });
-    interact(c, 1.7, 1.0, 3.9, { name: 'RELÓGIO DE PONTO', lines: ['CLAC.', 'Você já bateu o ponto hoje. E ontem. E amanhã, provavelmente.'] });
-    interact(c, 3.0, 1.0, 4.1, { name: 'MÁQUINA', lines: ['ENERGÉTICO FOCO — agora com 300% mais segunda-feira.', 'Você aperta o botão. Sai uma lata escrita "só mais uma volta".'] });
+    interact(c, 1.2, 1.0, 3.9, { name: 'RELÓGIO DE PONTO', lines: ['CLAC.', 'Você já bateu o ponto hoje. E ontem. E amanhã, provavelmente.'] });
+    interact(c, 2.15, 1.0, 4.3, { name: 'MÁQUINA', lines: ['ENERGÉTICO FOCO — agora com 300% mais segunda-feira.', 'Você aperta o botão. Sai uma lata escrita "só mais uma volta".'] });
     interact(c, -3.2, 3.0, 1.9, { name: 'FAIXA', lines: ['"SOMOS UMA FAMÍLIA."', 'Embaixo, bem pequeno: "família não recebe hora extra".'] });
     SPOTS.valdir = { c, x: -1.6, z: 3.2, y: 0.35 };
   }
@@ -105,7 +105,9 @@ export function addLandmarks() {
   BUILDS.push(() => { K.board(SPOTS.marmita, -1.0, 1.35, 2.15, 0.6, 0.75, texMenu(), {}); });
   // banca da Neide
   {
-    const i = nearestSample(MAIN, 5, 38), c = besideRoad(MAIN, i, 1, 1.9, -1.3);
+    // no terreno vazio depois das lojas (na calçada ela entrava na padaria)
+    const i = nearestSample(MAIN, 5, 62.5), c = besideRoad(MAIN, i, 1, 1.9, 0.35);
+    lot(c, 3.2, 2.8, { collide: false });
     BUILDS.push(() => bKiosk(c, {})); addBoxCollider(c, 2.6, 2.4, 0, 0.3, true); FOOT.push(footOf(c, 2.8, 2.8));
     SPOTS.neide = { c, x: 0.4, z: -0.2, y: 0 };
     interact(c, -0.8, 1.2, 1.4, { name: 'JORNAL', news: true, lines: [] });
@@ -177,23 +179,22 @@ export function addLandmarks() {
     const c = placeDir(dirOf(84.6, 70), headingVec(dirOf(84.6, 70), 180), { h: 6.2 });
     reserve(86, 70, 10.5);
     FOOT.push(footOf(c, 16, 16));
-    // terraço plano da piscina: o morro é redondo e ela ficava torta, meio enterrada
-    { const pd = ctxDir(c, 0, 4.4); addZone(pd, c.fwd, 4.2, 2.2, { h: 6.2, pn: pd, kind: 'grass', m: 1.8, prio: 1.05 }); }
+    // piscina no jardim do lado da casa, num terraço plano (o morro é redondo); a frente fica livre do portão até a escada
+    const PX = 6.45, PZ = -1.2;
+    { const pd = ctxDir(c, PX, PZ); addZone(pd, c.fwd, 1.4, 2.7, { h: 6.2, pn: pd, kind: 'grass', m: 1.2, prio: 1.05 }); }
     addBoxCollider(subCtx(c, 0, 0, -2.2), 10, 7, 0, 0, true);
+    addBoxCollider(subCtx(c, PX, 0, PZ), 2.4, 5.0);
     BUILDS.push(() => {
       bMansion(subCtx(c, 0, 0, -2.2));
-      // o morro é curvo: piscina e cadeiras assentam no chão onde estão, não no plano da casa;
-      // borda da piscina um pouco acima da grama; espreguiçadeiras dos lados, de frente para a água
-      poolAt(subCtx(drop(subCtx(c, 0, 0, 4.4), 0, 0, { radial: true, max: 3 }), 0, 0.12, 0), 6.0, 2.4);
-      for (const sx of [-1, 1]) { palm(c, sx * 5.7, 2.3, 1.0); addCircleLocal(c, sx * 5.7, 2.3, 0.4); }
-      umbrella(c, 4.3, 2.3, '#f4f4ef', '#de794e');
-      loungeChair(drop(subCtx(c, -4.6, 0, 4.6, Math.PI / 2), 0, 0, { max: 3 }));
-      loungeChair(drop(subCtx(c, 4.6, 0, 4.6, -Math.PI / 2), 0, 0, { max: 3 }));
-      for (const x of [-5.7, 5.7]) planter(c, x, -0.2, 1.4);
+      poolAt(subCtx(drop(subCtx(c, PX, 0, PZ), 0, 0, { radial: true, max: 3 }), 0, 0.12, 0), 1.8, 4.4);
+      for (const sx of [-1, 1]) { palm(c, sx * 5.6, 3.2, 1.0); addCircleLocal(c, sx * 5.6, 3.2, 0.4); }
+      umbrella(c, 4.6, 3.0, '#f4f4ef', '#de794e');
+      // espreguiçadeiras no gramado da frente, viradas para a vista, fora do caminho do portão
+      for (const sx of [-1, 1]) loungeChair(drop(subCtx(c, sx * 3.6, 0, 4.0, Math.PI), 0, 0, { max: 3 }));
+      planter(c, -5.7, -0.2, 1.4);
     });
-    addCircleLocal(c, 0, 4.4, 1.9); addCircleLocal(c, -1.6, 4.4, 1.5); addCircleLocal(c, 1.6, 4.4, 1.5);
-    SPOTS.otavio = { c: drop(subCtx(c, -4.6, 0, 4.6, Math.PI / 2), 0, 0, { max: 3 }), x: 0, z: 0, y: 0.32 };
-    PAGES.push({ c, x: 3.6, y: 0.8, z: 2.4, note: 'Domingo: fiquei na beira da piscina. Era de um vizinho. Ninguém viu.' });
+    SPOTS.otavio = { c: drop(subCtx(c, -3.6, 0, 4.0, Math.PI), 0, 0, { max: 3 }), x: 0, z: 0, y: 0.32 };
+    PAGES.push({ c, x: 5.3, y: 0.8, z: 1.6, note: 'Domingo: fiquei na beira da piscina. Era de um vizinho. Ninguém viu.' });
     // muro circular com portão voltado para a Ladeira
     BUILDS.push(() => {
       const ctr = dirOf(90, 0), rad = 9.4, n = 44;
@@ -215,7 +216,8 @@ export function addLandmarks() {
       K.box(gc, -2.3, 1.0, -0.3, 0.25, 0.35, 0.1, '#4b5658', { id: 5 });
       interact(gc, -2.3, 1.2, -0.1, { name: 'INTERFONE', lines: ['Você aperta. Chiado. Uma voz:', '"O Sr. Otávio está descansando. Ele está sempre descansando."'] });
       SPOTS.josue = { c: gc, x: 2.4, z: -0.5, y: 0, ry: 0 };
-      K.board(gc, 0, 2.7, 0.15, 2.6, 0.5, texSign('VILA OTÁVIO', '#f4f4ef', '#c25959', { font: 'lbl' }), { frame: '#e5c27a' });
+      // virada para quem chega pela Ladeira
+      K.board(subCtx(gc, 0, 0, 0, Math.PI), 0, 2.7, 0.15, 2.6, 0.5, texSign('VILA OTÁVIO', '#f4f4ef', '#c25959', { font: 'lbl' }), { frame: '#e5c27a' });
     });
   }
   // Fábrica de Voltas
@@ -256,7 +258,7 @@ export function addLandmarks() {
       for (const [la, lo, c1, c2] of um) { const uc = beach(la, lo, rand() * 360); umbrella(uc, 0, 0, c1, c2); towel(uc, 0.6, 0.4, rand() * 3, pickR(['#66bde6', '#c25959', '#f3c258', '#8cc48c'])); addCircle(uc.d, 0.3); }
       for (const [la, lo, hd] of [[-36.5, 207, 60], [-37.5, 211, 100]]) { const bc = beach(la, lo, hd); boat(bc, 0, 0, 0, { color: '#3f8fc2', y: -0.25 }); addBoxCollider(bc, 4.2, 1.6); }
       for (const [la, lo] of [[-26.6, 210], [-26.8, 224], [-26.6, 240], [-27, 252], [-30.5, 205], [-31, 257]]) { const pc = beach(la, lo, rand() * 360); palm(pc, 0, 0, rr(0.9, 1.15)); addCircle(pc.d, 0.4); }
-      const sc = beach(-27.2, 230.6, 180);
+      const sc = beach(-27.2, 230.6, 0); // de frente para a avenida, de onde a gente chega
       signPost(sc, 0, 0, texSign('PRAIA', '#66bde6', '#f4f4ef', { w: 256, h: 128 }), 1.0, 0.5);
       interact(sc, 0, 1.6, 0.2, { name: 'PLACA', lines: ['PRAIA DO INTERVALO — aberta aos domingos.', '(Domingos suspensos até segunda ordem.)'] });
       interact(lg, 0, 1.5, 1.4, { name: 'POSTO', lines: ['"Salva-vidas em horário de almoço desde 2019."', 'O almoço dele já dura mais que a semana de todo mundo.'] });

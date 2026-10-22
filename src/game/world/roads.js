@@ -93,6 +93,8 @@ export function settleRoads() {
         }
       }
       if (rd.minH !== undefined) for (const s of S) s.h = Math.max(s.h, rd.minH);
+      // endH: a rua termina chegando nessa altura (a Ladeira sobe até o platô da mansão, sem degrau no fim)
+      if (rd.endH !== undefined) { const L = Math.max(4, Math.round(9 / rd.step)); for (let i = 0; i < N; i++) S[i].h = lerp(S[i].h, rd.endH, sstep(N - 1 - L, N - 1, i)); }
     }
     const hash = rd.kind === 'trail' ? THASH : RHASH;
     for (const s of S) hash.insert(s.x, s.y, s.z, rd.kind === 'trail' ? 3 : 6.5, s);

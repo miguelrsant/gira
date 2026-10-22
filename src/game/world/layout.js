@@ -34,8 +34,8 @@ export function defineWorld() {
   VILA = defRoad({ name: 'Rua do Sossego', w: 2.5, sw: 1.1, marks: 'none', level: 1, kind: 'asphalt', pts: [
     onRoad(MAIN, 8.5, 74), [16, 75], [25, 79], [33, 88], [35, 100], [30, 111], [20, 111], [11, 105], onRoad(MAIN, 5.5, 101)] });
   defRoad({ name: 'Rua das Flores', w: 2.3, sw: 1.0, marks: 'none', level: 2, pts: [onRoad(VILA, 25, 79), [23, 93], onRoad(VILA, 20, 111)] });
-  LADEIRA = defRoad({ name: 'Ladeira', w: 2.6, sw: 0.9, marks: 'double', level: 3, pts: [
-    onRoad(VILA, 25, 79), [31, 72], [38, 64], [46, 70], [53, 62], [60, 70], [66, 63], [69.6, 70]] });
+  LADEIRA = defRoad({ name: 'Ladeira', w: 2.6, sw: 0.9, marks: 'double', level: 3, endH: 6.2, pts: [
+    onRoad(VILA, 25, 79), [31, 72], [38, 64], [46, 70], [53, 62], [60, 70], [66, 63], [69.6, 70], [77, 70]] });
   CONJ = defRoad({ name: 'Conjunto Esteira Feliz', w: 2.5, sw: 1.0, marks: 'none', level: 4, pts: [
     onRoad(MAIN, 4, 106), [-6, 101], [-16, 96], [-25, 99], [-31, 108], [-27, 121], [-17, 128], onRoad(MAIN, -10, 134)] });
   defRoad({ name: 'Acesso da Fábrica', w: 2.6, sw: 0.8, marks: 'none', level: 5, pts: [onRoad(MAIN, -16, 149), [-23, 148], [-28, 151]] });

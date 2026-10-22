@@ -13,7 +13,7 @@ import { placeDir } from './kit.js';
 import { addCircle, FOOT, isReserved } from './places.js';
 import { bush, flowers, palm, pine, tree } from './plants.js';
 import { isNearAny } from './street.js';
-import { H, TERRAIN, trailDist } from './terrain.js';
+import { groundAt, H, roadsAt, TERRAIN, trailDist } from './terrain.js';
 
 export function scatter() {
   const tryAt = (lat, lon, fn, r = 0.6) => {
@@ -86,6 +86,8 @@ export function buildGrass() {
     const reps = LOW ? 1 : 2;
     for (let r = 0; r < reps; r++) {
       const dd = d.clone().addScaledVector(eastOf(d, tmpV), rr(-0.2, 0.2) / R).addScaledVector(northOf(d, tmpV2), rr(-0.2, 0.2) / R).normalize();
+      // nada de capim atravessando calçada, deque ou rua: perto deles o chão de verdade fica acima da malha
+      if (roadsAt(dd, 0.35).length || groundAt(dd) > ha[i] + 0.12) continue;
       p.copy(dd).multiplyScalar(R + ha[i] - 0.03);
       const f = headingVec(dd, rand() * 360);
       frameMatrix(p, dd, f, m4);

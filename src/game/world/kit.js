@@ -24,16 +24,16 @@ export function groundNormal(up, out = new THREE.Vector3()) {
   const e = 0.25 / R, a = tmpA.set(0, 1, 0);
   if (Math.abs(up.y) > 0.9) a.set(1, 0, 0);
   const t1 = tmpB.crossVectors(up, a).normalize(), t2 = tmpC.crossVectors(up, t1);
+  const hs = [];
+  for (const [t, sg] of [[t1, 1], [t1, -1], [t2, 1], [t2, -1]]) hs.push(groundAt(tmpD.copy(up).addScaledVector(t, sg * e).normalize()));
+  // degrau (meio-fio, beira do deque): ali a "inclinação" é falsa, a peça fica em pé
   const h0 = groundAt(up);
-  const p1 = tmpD.copy(up).addScaledVector(t1, e).normalize(), h1 = groundAt(p1); p1.multiplyScalar(R + h1);
-  const p2 = tmpE.copy(up).addScaledVector(t2, e).normalize(), h2 = groundAt(p2); p2.multiplyScalar(R + h2);
-  const p0 = out.copy(up).multiplyScalar(R + h0);
-  p1.sub(p0); p2.sub(p0);
-  out.crossVectors(p1, p2).normalize();
-  if (out.dot(up) < 0) out.negate();
-  return out;
+  if (hs.some((h) => Math.abs(h - h0) > 0.08)) return out.copy(up);
+  // gradiente por diferença central: n = up - grad
+  const gx = (hs[0] - hs[1]) / (2 * e * R), gz = (hs[2] - hs[3]) / (2 * e * R);
+  return out.copy(up).addScaledVector(t1, -gx).addScaledVector(t2, -gz).normalize();
 }
-const tmpA = new THREE.Vector3(), tmpB = new THREE.Vector3(), tmpC = new THREE.Vector3(), tmpD = new THREE.Vector3(), tmpE = new THREE.Vector3();
+const tmpA = new THREE.Vector3(), tmpB = new THREE.Vector3(), tmpC = new THREE.Vector3(), tmpD = new THREE.Vector3();
 export function drop(c, x, z, o = {}) {
   const p = ctxPoint(c, x, 0, z), up = p.clone().normalize();
   let dh = p.length() - R - groundAt(up);
