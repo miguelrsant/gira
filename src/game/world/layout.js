@@ -1,10 +1,16 @@
 // ---------------- relevo e ruas ----------------
 import * as THREE from 'three';
 import { SEA } from '../core/config.js';
-import { dirOf } from '../core/math.js';
+import { dirOf, latOf, lonOf } from '../core/math.js';
 import { defRoad, settleRoads } from './roads.js';
 import { addZone, hill, town } from './terrain.js';
 
+// ponto da rua já alisada mais perto de (lat, lon): as ruas que nascem em outra começam em cima dela
+function onRoad(rd, lat, lon) {
+  const d = dirOf(lat, lon); let best = rd.S[0];
+  for (const s of rd.S) if (s.d.dot(d) > best.d.dot(d)) best = s;
+  return [latOf(best.d), lonOf(best.d)];
+}
 export let MAIN, VILA, LADEIRA, CONJ, BOARD, PIER, LAKEPIER;
 export function defineWorld() {
   // relevo
@@ -18,7 +24,7 @@ export function defineWorld() {
   hill(42, 20, 10, 1.8);
   hill(-30, 300, 9, 1.2);
   town(14, 20, 24); town(25, 90, 15); town(-28, 152, 13); town(-27, 232, 16); town(-25, 100, 14);
-  town(86, 70, 10); town(-12, 28, 8); town(-74, 236, 5); town(14, 300, 8); town(-16, 78, 6);
+  town(86, 70, 10); town(-12, 28, 8); town(-74, 236, 5); town(14, 300, 8); town(-15, 79, 7);
   // zona plana do topo do morro
   addZone(dirOf(90, 0), new THREE.Vector3(1, 0, 0), 9.5, 9.5, { h: 6.2, round: true, m: 3.5, kind: 'grass', plane: false });
 
@@ -26,13 +32,13 @@ export function defineWorld() {
     [4, -12], [4, 6], [4.5, 24], [5, 42], [7, 58], [9, 74], [8, 90], [4, 106], [-3, 120], [-10, 134], [-16, 149], [-20, 165],
     [-21, 182], [-20.5, 200], [-20, 218], [-20, 236], [-20.5, 254], [-19.5, 270], [-15, 286], [-9, 301], [-4, 316], [0, 331], [3, 346]] });
   VILA = defRoad({ name: 'Rua do Sossego', w: 2.5, sw: 1.1, marks: 'none', level: 1, kind: 'asphalt', pts: [
-    [8.5, 74], [16, 75], [25, 79], [33, 88], [35, 100], [30, 111], [20, 111], [11, 105], [5.5, 101]] });
-  defRoad({ name: 'Rua das Flores', w: 2.3, sw: 1.0, marks: 'none', level: 2, pts: [[25, 79], [23, 93], [20, 111]] });
+    onRoad(MAIN, 8.5, 74), [16, 75], [25, 79], [33, 88], [35, 100], [30, 111], [20, 111], [11, 105], onRoad(MAIN, 5.5, 101)] });
+  defRoad({ name: 'Rua das Flores', w: 2.3, sw: 1.0, marks: 'none', level: 2, pts: [onRoad(VILA, 25, 79), [23, 93], onRoad(VILA, 20, 111)] });
   LADEIRA = defRoad({ name: 'Ladeira', w: 2.6, sw: 0.9, marks: 'double', level: 3, pts: [
-    [25, 79], [31, 72], [38, 64], [46, 70], [53, 62], [60, 70], [66, 63], [71, 70]] });
+    onRoad(VILA, 25, 79), [31, 72], [38, 64], [46, 70], [53, 62], [60, 70], [66, 63], [71, 70]] });
   CONJ = defRoad({ name: 'Conjunto Esteira Feliz', w: 2.5, sw: 1.0, marks: 'none', level: 4, pts: [
-    [4, 106], [-6, 101], [-16, 96], [-25, 99], [-31, 108], [-27, 121], [-17, 128], [-10, 134]] });
-  defRoad({ name: 'Acesso da Fábrica', w: 2.6, sw: 0.8, marks: 'none', level: 5, pts: [[-16, 149], [-23, 148], [-28, 151]] });
+    onRoad(MAIN, 4, 106), [-6, 101], [-16, 96], [-25, 99], [-31, 108], [-27, 121], [-17, 128], onRoad(MAIN, -10, 134)] });
+  defRoad({ name: 'Acesso da Fábrica', w: 2.6, sw: 0.8, marks: 'none', level: 5, pts: [onRoad(MAIN, -16, 149), [-23, 148], [-28, 151]] });
   BOARD = defRoad({ name: 'Calçadão', kind: 'wood', w: 2.2, level: 6, pts: [[-27.6, 203], [-28.3, 216], [-28.6, 230], [-28.3, 244], [-27.6, 256]] });
   PIER = defRoad({ name: 'Píer', kind: 'pier', w: 1.9, fixedH: SEA + 0.95, noFlat: true, pts: [[-29.5, 232], [-40, 232.5], [-50, 233], [-59, 234], [-66, 235]] });
   LAKEPIER = defRoad({ name: 'Deque do Lago', kind: 'pier', w: 1.5, fixedH: SEA + 0.7, noFlat: true, pts: [[7.8, 296], [10.6, 297.5]] });

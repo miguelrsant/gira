@@ -97,17 +97,25 @@ export function settleRoads() {
     const hash = rd.kind === 'trail' ? THASH : RHASH;
     for (const s of S) hash.insert(s.x, s.y, s.z, rd.kind === 'trail' ? 3 : 6.5, s);
   }
-  // cruzamentos: a rua secundária chega na altura da principal (senão uma fica por cima da outra)
+  // cruzamentos: a rua secundária chega na altura da principal, e só perto do encontro
+  // (antes puxava pela distância lateral e afundava ruas inteiras que corriam ao lado de outra)
   const order = ROADS.filter((r) => r.kind !== 'trail' && r.fixedH === undefined).sort((a, b) => a.level - b.level);
   for (const rd of order) {
-    const S = rd.S, target = S.map((s) => s.h), wgt = S.map(() => 0);
-    for (let i = 0; i < S.length; i++) {
+    const S = rd.S, N = S.length, meets = [];
+    for (let i = 0; i < N; i++) {
       const rn = roadNear(S[i].d, (r) => r !== rd && r.kind !== 'trail' && r.fixedH === undefined && r.level < rd.level);
-      if (!rn) continue;
-      const w = 1 - sstep(rn.road.hw + rn.road.sw, rn.road.hw + rn.road.sw + 5, rn.dist);
-      if (w > 0) { target[i] = rn.h; wgt[i] = w; }
+      if (rn && rn.dist < rn.road.hw) meets.push([i, rn.h]);
     }
-    for (let i = 0; i < S.length; i++) if (wgt[i] > 0) S[i].h = lerp(S[i].h, target[i], wgt[i]);
+    if (!meets.length) continue;
+    const L = Math.max(3, Math.round(5 / rd.step)), h0 = S.map((s) => s.h);
+    for (let i = 0; i < N; i++) {
+      let bw = 0, bt = 0;
+      for (const [j, th] of meets) {
+        let k = Math.abs(i - j); if (rd.closed) k = Math.min(k, N - k);
+        const w = 1 - sstep(0, L, k); if (w > bw) { bw = w; bt = th; }
+      }
+      if (bw > 0) S[i].h = lerp(h0[i], bt, bw);
+    }
   }
   // cortes de calçada e faixa onde uma rua cruza outra
   for (const rd of ROADS) {
@@ -171,8 +179,10 @@ export function buildRoads() {
       if (rd.kind === 'wood' || rd.kind === 'pier') {
         const yt = rd.kind === 'wood' ? top : 0;
         roadStrip(g, s0, s1, -hw, yt, hw, yt, RC.wood, 'up', { pat: 3, id: 3, q: [[a0, -hw], [a0, hw], [a1, hw], [a1, -hw]] });
-        roadStrip(g, s0, s1, hw, yt, hw, yt - 0.22, RC.woodD, 1, { id: 3 });
-        roadStrip(g, s0, s1, -hw, yt - 0.22, -hw, yt, RC.woodD, -1, { id: 3 });
+        // saia do deque vai até bem abaixo do chão: na areia inclinada não sobra vão embaixo
+        const yb = rd.kind === 'wood' ? -0.9 : yt - 0.22;
+        roadStrip(g, s0, s1, hw, yt, hw, yb, RC.woodD, 1, { id: 3 });
+        roadStrip(g, s0, s1, -hw, yb, -hw, yt, RC.woodD, -1, { id: 3 });
         continue;
       }
       const c = rd.kind === 'stone' ? RC.stone : RC.asphalt;
@@ -223,9 +233,15 @@ export function buildCorners() {
     if (M.closed || !M.sw || M.kind === 'trail') continue;
     const S = M.S, N = S.length;
     for (const [i0, dir] of [[0, 1], [N - 1, -1]]) {
-      const rnE = roadNear(S[i0].d, (r) => r !== M && r.kind !== 'trail' && r.sw > 0);
-      if (!rnE || rnE.dist > rnE.road.hw) continue;
-      const J = rnE.road, JS = J.S, JN = JS.length;
+      // a rua onde esta termina: a mais importante (menor nível) que passa embaixo da ponta
+      let J = null;
+      for (const r of ROADS) {
+        if (r === M || r.kind === 'trail' || !r.sw || r.level >= M.level) continue;
+        const rn = roadNear(S[i0].d, (q) => q === r);
+        if (rn && rn.dist <= r.hw && (!J || r.level < J.level)) J = r;
+      }
+      if (!J) continue;
+      const JS = J.S, JN = JS.length;
       for (const sg of [-1, 1]) {
         const cutOf = (s) => (sg > 0 ? s.cutR : s.cutL);
         let k = i0; while (k >= 0 && k < N && cutOf(S[k])) k += dir;

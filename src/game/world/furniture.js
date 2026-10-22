@@ -38,6 +38,7 @@ export function bench(c, x, z, ry = 0) {
   for (const sx of [-0.75, 0.75]) { K.box(s, sx, -0.4, 0, 0.07, 0.84, 0.42, '#4b5658', { layer: 'small' }); K.box(s, sx, 0.44, -0.27, 0.07, 0.45, 0.06, '#4b5658', { layer: 'small' }); }
 }
 export function vending(c, x, z, kind, ry = 0) {
+  c = drop(c, x, z);
   solid(c, x, z, 0, 0.95, 0.75, ry);
   const s = subCtx(c, x, 0, z, ry);
   const bg = kind === 'foco' ? '#f3c258' : kind === 'cafe' ? '#c25959' : '#66bde6';
@@ -45,7 +46,7 @@ export function vending(c, x, z, kind, ry = 0) {
   K.pl(s, 0, 0.93, 0.38, 0.85, 1.7, texVending(kind), { id: 6 });
 }
 export function pot(c, x, z, s = 1) { c = drop(c, x, z); solid(c, x, z, 0.28 * s); K.cyl(c, x, 0, z, 0.22 * s, 0.36 * s, '#c9744f', { n: 9, top: 1.25, layer: 'small' }); K.blob(c, x, 0.5 * s, z, 0.3 * s, 0.32 * s, 0.3 * s, leafCF(LEAVES[1]), { sway: 0.3, swayH: 1, det: 1 }); }
-export function planter(c, x, z, w = 2) { solid(c, x, z, 0, w, 0.6); K.box(c, x, -0.5, z, w, 1.0, 0.6, '#b9b4a4', { id: 5, layer: 'small', pat: 2 }); for (let i = 0; i < Math.round(w / 0.6); i++) K.blob(c, x - w / 2 + 0.3 + i * 0.6, 0.62, z, 0.36, 0.3, 0.3, leafCF(LEAVES[i % 3]), { sway: 0.2, swayH: 1, det: 1 }); }
+export function planter(c, x, z, w = 2) { c = drop(c, x, z); solid(c, x, z, 0, w, 0.6); K.box(c, x, -0.5, z, w, 1.0, 0.6, '#b9b4a4', { id: 5, layer: 'small', pat: 2 }); for (let i = 0; i < Math.round(w / 0.6); i++) K.blob(c, x - w / 2 + 0.3 + i * 0.6, 0.62, z, 0.36, 0.3, 0.3, leafCF(LEAVES[i % 3]), { sway: 0.2, swayH: 1, det: 1 }); }
 export function crate(c, x, z, s = 0.7, ry = 0) { c = drop(c, x, z); solid(c, x, z, 0, s, s, ry); K.box(c, x, 0, z, s, s, s, '#b48d63', { id: 3, pat: 3, layer: 'small', ry }); }
 export function barrel(c, x, z, color = '#4f86b8') { c = drop(c, x, z); solid(c, x, z, 0.32); K.cyl(c, x, 0, z, 0.3, 0.9, color, { n: 12, layer: 'small' }); K.cyl(c, x, 0.3, z, 0.31, 0.05, '#4b5658', { n: 12, layer: 'small' }); K.cyl(c, x, 0.65, z, 0.31, 0.05, '#4b5658', { n: 12, layer: 'small' }); }
 function gasCyl(c, x, z) { solid(c, x, z, 0.2); K.cyl(c, x, 0, z, 0.18, 0.5, '#c25959', { n: 10, layer: 'small' }); K.sph(c, x, 0.5, z, 0.18, 0.1, 0.18, '#c25959', { layer: 'small', w: 8, h: 5 }); }

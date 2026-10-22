@@ -1,6 +1,6 @@
 // ---------------- marcos (lugares com nome) ----------------
 import { R, SEA } from '../core/config.js';
-import { D2R, dirOf, headingVec, pickR, rand, rr } from '../core/math.js';
+import { D2R, dirOf, headingVec, latOf, lonOf, pickR, rand, rr } from '../core/math.js';
 import {
   bBeachKiosk, bBusStop, bClockTower, bFountain, bGuardBooth, bHouse, bKiosk, bLifeguard, bMansion,
   bOrelhao, bPodium, bSchool, bShop, bStatue, bTower, bWarehouse, chimney,
@@ -11,6 +11,7 @@ import {
 } from './furniture.js';
 import { ctxDir, K, placeAt, placeDir, subCtx } from './kit.js';
 import { MAIN } from './layout.js';
+import { ROADS } from './roads.js';
 import {
   addBoxCollider, addCircle, addCircleLocal, besideRoad, BUILDS, COLLIDERS, district, DYN, FOOT,
   footOf, interact, lot, nearestSample, onSidewalk, PAGES, reserve, SPOTS,
@@ -134,9 +135,13 @@ export function addLandmarks() {
   // Vila do Sossego
   district('VILA DO SOSSEGO', 'o nome é antigo', 25, 92, 11);
   {
-    const c = placeAt(24.5, 95, 0);
+    // a pracinha fica ao lado da Rua das Flores (antes ela caía em cima da rua)
+    const flores = ROADS.find((r) => r.name === 'Rua das Flores');
+    const fi = nearestSample(flores, 24.5, 95);
+    const sides = [1, -1].map((sd) => besideRoad(flores, fi, sd, 5.6, 0.2));
+    const c = sides[0].d.y > sides[1].d.y ? sides[0] : sides[1];
     addZone(c.d, c.fwd, 2.8, 2.8, { h: c.h, round: true, kind: 'paved', m: 1.5 });
-    reserve(24.5, 95, 3.4); FOOT.push(footOf(c, 6, 6));
+    reserve(latOf(c.d), lonOf(c.d), 3.4); FOOT.push(footOf(c, 6, 6));
     BUILDS.push(() => {
       plazaDisc(c, 2.7);
       bench(c, 0, 0.9, Math.PI); tree(c, -1.6, -1.2, 1.05); addCircleLocal(c, -1.6, -1.2, 0.45); lampPost(c, 1.9, -1.4);
@@ -294,11 +299,12 @@ export function addLandmarks() {
     PAGES.push({ c: placeAt(10.5, 297.6, 0), x: 0, y: 1.6, z: 0, note: 'Domingo: dei pão pros patos. Os patos não trabalham e estão ótimos.', h: SEA + 0.7 });
   }
   // horta comunitária
-  district('HORTA COMUNITÁRIA', 'rega quando der', -16, 78, 5);
+  district('HORTA COMUNITÁRIA', 'rega quando der', -15, 79, 6);
   {
-    const i = nearestSample(MAIN, 8.5, 78), c = besideRoad(MAIN, i, -1, 5.5, 1.2);
-    lot(c, 7, 5.5, { kind: 'field', collide: false });
-    reserve(-16, 78, 4);
+    // num gramado aberto, longe dos cruzamentos (perto da esquina a horta brigava com as calçadas)
+    const c = placeAt(-15, 79, 10);
+    lot(c, 7.6, 6.4, { kind: 'field', collide: false, m: 2.4 });
+    reserve(-15, 79, 6);
     BUILDS.push(() => {
       for (let r = 0; r < 3; r++) {
         K.box(c, 0, -0.8, -1.6 + r * 1.6, 5.6, 1.1, 0.9, '#8e6c4b', { id: 3, pat: 3 });
