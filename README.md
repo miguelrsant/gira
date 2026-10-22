@@ -12,12 +12,12 @@ GIRA é um joguinho de navegador sobre um planeta minúsculo que só gira quando
 - **14 bairros para explorar**, espalhados pelo planeta inteiro: Praça do Relógio, a sede da GIRA S.A., Rua do Comércio, Campinho, Vila do Sossego, Escola Galileu, o Morro dos Ricos com a mansão do Sr. Otávio, a Fábrica de Voltas e sua roda de hamster, o Conjunto Esteira Feliz, a Praia do Intervalo, a Ilha do Sinal Fraco, o Parque Domingueiro, a Horta e o Mirante.
 - **Vizinhos com história**, com falas que mudam a cada dia: Seu Valdir, o chefe do alto-falante; Nara, da padaria; Rafa Foco; Seu Lino; Bia; Sr. Otávio; Josué, o segurança; Dona Neide, da banca; Marcos, da roda; Seu Tonho, o pescador; o gato Mingau e o cachorro Caramelo, que segue você por aí.
 - **Muita coisa escondida:** placas, vitrines, cartazes e objetos para ler, 7 folhas de domingo perdidas pelo mundo, um guarda-roupa e emoções para a Duda, a sua personagem.
-- **A Duda sente a semana.** O rosto, a postura e o passo dela mudam com o humor do dia: brava na segunda, entediada na terça, arrastando os pés de cansaço no fim da semana. Dá para agachar e fazer carinho no Caramelo.
+- **A Duda sente a semana.** O rosto, a postura e o passo dela mudam com o humor do dia: brava na segunda, entediada na terça, arrastando os pés de cansaço no fim da semana. Dá para fazer carinho no Caramelo (ela agacha e passa a mão na cabeça dele) e no Mingau, em cima do muro.
 - **Uma semana, uma escolha.** O que acontece no sétimo dia depende de você.
 
 ![Duda conversando com Seu Lino, sentado num banco da praça](docs/conversa.jpg)
 
-![Duda agachada fazendo carinho no Caramelo](docs/carinho.jpg)
+![Duda agachada passando a mão na cabeça do Caramelo](docs/carinho.jpg)
 
 ## Controles
 

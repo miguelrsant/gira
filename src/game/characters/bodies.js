@@ -23,7 +23,7 @@ const BODY = {
 const SKINS = ['#f6d7c3', '#eec1a1', '#d9a27c', '#b97c57', '#8d5a3b', '#6b4430'];
 const HAIRCOL = ['#2f3437', '#3d3330', '#5a4032', '#8a5a3a', '#c99a5b', '#d9d4cc', '#9b4a3a', '#29323d'];
 // pele em relação ao tom (para nariz/sombra do rosto)
-export const BI = { root: 0, torso: 1, head: 2, armL: 3, foreL: 4, armR: 5, foreR: 6, legL: 7, shinL: 8, footL: 9, legR: 10, shinR: 11, footR: 12, tail: 13, prop: 14, sign: 15 };
+export const BI = { root: 0, torso: 1, head: 2, armL: 3, foreL: 4, armR: 5, foreR: 6, legL: 7, shinL: 8, footL: 9, legR: 10, shinR: 11, footR: 12, tail: 13, prop: 14, sign: 15, handL: 16, handR: 17 };
 
 export function charMat() {
   const m = new THREE.MeshToonMaterial({ vertexColors: true, map: FACE.tex, gradientMap: gradC });
@@ -65,6 +65,7 @@ export function makeChar(spec) {
   mk(head, 0, hr * 0.55, -hr * 0.95);                  // 13 rabo de cavalo
   mk(foreR, 0, -P.fore - 0.03 * P.ag, 0.0);              // 14 objeto na mão
   mk(foreR, 0, -P.fore - 0.03 * P.ag, 0.0);              // 15 cartaz da greve
+  mk(foreL, 0, -P.fore, 0); mk(foreR, 0, -P.fore, 0);   // 16 e 17 mãos (pulso): no carinho a mão deita no pelo
   // ---- tronco: peças com curvas (quadril, cintura, peito, ombros caídos) ----
   P.ky = (P.shY - P.waist) / 0.35;
   const ky = P.ky, w = P.tw;
@@ -91,7 +92,7 @@ export function makeChar(spec) {
   const sleeveShort = ['tee', 'polo', 'apron', 'dress'].includes(top.kind);
   const shoulderC = top.kind === 'tank' ? skin : (top.sleeve || tc);
   for (const s of [1, -1]) {
-    const x = s * P.shX, bA = s > 0 ? BI.armL : BI.armR, bF = s > 0 ? BI.foreL : BI.foreR, ag = P.ag, skA = armC === skin;
+    const x = s * P.shX, bA = s > 0 ? BI.armL : BI.armR, bF = s > 0 ? BI.foreL : BI.foreR, bH = s > 0 ? BI.handL : BI.handR, ag = P.ag, skA = armC === skin;
     const cl = skA ? 0 : 0.005;
     add(sphG(12, 8), TM(x - s * 0.012, P.shY - 0.02, 0, 0.042 * ag, 0.044 * ag, 0.042 * ag), shoulderC, 3, bA);
     // (a ponta de cima fica escondida dentro do ombro e da manga)
@@ -102,8 +103,8 @@ export function makeChar(spec) {
     if (!skA) { const cf = taperG(0.035 * ag, 0.035 * ag, 0.025); add(cf, TM(x, P.shY - P.arm - P.fore - 0.004, 0), hexMix(armC, '#000000', 0.12), 6, bF); cf.dispose(); }
     // mão: palma arredondada e polegar
     const hy = P.shY - P.arm - P.fore - 0.036 * ag;
-    add(sphG(10, 8), TM(x, hy, 0.004, 0.035 * ag, 0.048 * ag, 0.027 * ag), skin, 1, bF);
-    add(sphG(8, 6), TM(x - s * 0.019 * ag, hy + 0.01, 0.022 * ag, 0.014 * ag, 0.024 * ag, 0.014 * ag, 0, -0.3), skin, 1, bF);
+    add(sphG(10, 8), TM(x, hy, 0.004, 0.035 * ag, 0.048 * ag, 0.027 * ag), skin, 1, bH);
+    add(sphG(8, 6), TM(x - s * 0.019 * ag, hy + 0.01, 0.022 * ag, 0.014 * ag, 0.024 * ag, 0.014 * ag, 0, -0.3), skin, 1, bH);
     if (acc.has('watch') && s > 0) add(torG(1, 0.25, 5, 12), TM(x, P.shY - P.arm - P.fore + 0.02, 0, 0.034 * ag, 0.034 * ag, 0.034 * ag, 0, Math.PI / 2), '#e5c27a', 6, bF);
   }
   // ---- pernas: coxa mais cheia em cima, joelho, panturrilha e tornozelo fino ----

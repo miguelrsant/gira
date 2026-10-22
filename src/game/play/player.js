@@ -55,7 +55,7 @@ function rebuildPlayer() {
   const old = player.ch, st = old.st;
   const spec = heroSpec(); spec.reuseSlot = old.slot;
   const ch = makeChar(spec);
-  for (const k of ['pose', 'act', 'sign', 'tired', 'seat', 'mood', 'crouch', 'pet', 'reachH']) ch.st[k] = st[k];
+  for (const k of ['pose', 'act', 'sign', 'tired', 'seat', 'mood', 'crouch', 'pet']) ch.st[k] = st[k];
   disposeChar(old); scene.add(ch.rig); player.ch = ch; placePlayer();
   if (player.mood) setMoodFace(ch, player.mood);
 }

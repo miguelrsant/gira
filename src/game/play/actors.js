@@ -1,7 +1,7 @@
 // ================= gente e bichos =================
 import * as THREE from 'three';
 import { R, RUN, WALK } from '../core/config.js';
-import { arcDist, clamp, headingVec, lerp, offsetDir, orient, rand, rr, V3 } from '../core/math.js';
+import { arcDist, clamp, headingVec, lerp, offsetDir, orient, rand, rr, sstep, V3 } from '../core/math.js';
 import { camera, scene } from '../core/renderer.js';
 import { overHorizon } from '../world/chunks.js';
 import { ctxPoint } from '../world/kit.js';
@@ -124,7 +124,7 @@ function updateDog(a, dt) {
     }
     // não deu para chegar (meio-fio, banca): fica onde está e a Duda vai até ele
     if (a.stuck > 0.5) a.petBlocked = true;
-    const close = a.dist < PET_D + 0.15;
+    const close = a.dist < PET_D + 0.06;
     tgt = a.petSpot; keep = 0.02; maxSp = a.petBlocked || close ? 0 : 1.3;
     if (arcDist(a.d, a.petSpot) < 0.3 || a.petBlocked || close) {
       const dir = _w.a.copy(player.d).addScaledVector(a.d, -player.d.dot(a.d)).normalize();
@@ -178,29 +178,58 @@ function updateDog(a, dt) {
   if (!following && !fleeing && arcDist(a.d, a.home) > 25 && !a.vis) { a.d.copy(a.home); a.h = a.homeH; a.fwd.copy(a.baseFwd); }
 }
 
-// carinho no bicho: a Duda vira para ele, agacha (ou estica o braço, se ele está no alto) e faz carinho
-const PET_D = 0.8;   // o Caramelo senta a essa distância da Duda (a mão dela alcança a cabeça dele)
+// carinho no bicho: a Duda vira para ele, chega perto até a mão alcançar, agacha (ou fica em pé, se ele está no alto)
+// e passa a mão na cabeça dele
+const PET_D = 0.75;   // o Caramelo senta a essa distância da Duda (a mão dela alcança a cabeça dele)
+const PET_YAW = 0.35; // e um pouco à direita dela (a mão direita alcança e as cabeças não se batem)
+const STROKE = 1.3;   // segundos de cada passada da mão
 const _pd = V3();
+const _pt = { n: V3(), rel: V3(), c: V3() };
+// onde a palma encosta: no alto da cabeça do bicho, indo da testa até a nuca, depois levanta um pouco e volta
+function strokePoint(a, hs) {
+  const ch = a.ch, P = ch.P, hb = ch.bones[1];
+  hb.updateWorldMatrix(true, false);
+  const u = (a.petT / STROKE) % 1, on = u < 0.62;
+  const s = on ? sstep(0, 1, u / 0.62) : 1 - sstep(0, 1, (u - 0.62) / 0.38);
+  const phi = lerp(0.45, -0.8, s), lift = on ? 0 : Math.sin(Math.PI * (u - 0.62) / 0.38) * 0.04;
+  // o alto da cabeça é uma elipse (centro a (0; 0,06; 0,06) do osso da cabeça)
+  const n = _pt.n.set(0, Math.cos(phi) / P.ht, Math.sin(phi) / P.hd).normalize();
+  if (!hs.petAt) { hs.petAt = V3(); hs.petN = V3(); }
+  hs.petAt.set(0, 0.06 + P.hr * P.ht * Math.cos(phi), 0.06 + P.hr * P.hd * Math.sin(phi)).addScaledVector(n, lift);
+  hb.localToWorld(hs.petAt);
+  hs.petN.copy(n).transformDirection(hb.matrixWorld);
+  ch.st.petted = on ? 1 : 0.5;
+}
 function petByHero(a, dt) {
   const hs = player.ch.st;
-  if (!a.talking) { if (a.petting) { a.petting = false; a.petSpot = null; a.petBlocked = false; hs.crouch = false; hs.pet = false; player.auto = null; } return; }
-  if (!a.petting) { a.petting = true; a.petT = 0; }
+  if (!a.talking) { if (a.petting) { a.petting = false; a.petSpot = null; a.petBlocked = false; a.ch.st.petted = 0; hs.crouch = false; hs.pet = false; player.auto = null; } return; }
+  if (!a.petting) { a.petting = true; a.petT = 0; a.heroGap = 9; a.heroStill = 0; }
   a.petT += dt;
   const up = player.d, dir = _b.p.copy(a.d).addScaledVector(up, -a.d.dot(up));
   if (dir.lengthSq() > 1e-10) {
     dir.normalize();
-    const f = player.fwd, ang = Math.atan2(_b.r.crossVectors(f, dir).dot(up), f.dot(dir));
+    // fica de frente para um pouco à esquerda do bicho: ele fica na frente da mão direita
+    const face = _b.rel.copy(dir).applyAxisAngle(up, PET_YAW);
+    const f = player.fwd, ang = Math.atan2(_b.r.crossVectors(f, face).dot(up), f.dot(face));
     f.applyAxisAngle(up, ang * (1 - Math.exp(-dt * 5))).addScaledVector(up, -f.dot(up)).normalize();
   }
-  // se o bicho não chega (meio-fio, muro), a Duda dá uns passos até ele
-  const gap = a.dist - (a.pet === 'cat' ? 0.6 : PET_D);
-  player.auto = gap > 0.12 && a.petT > (a.pet === 'cat' ? 0 : 0.6) && a.petT < 3.5 ? { dir: _pd.copy(dir), speed: clamp(gap * 2.2, 0.5, 1.4) } : null;
-  // altura da cabeça do bicho em relação aos pés da Duda: baixo, ela agacha; no alto (o Mingau no muro), carinho em pé
-  hs.reachH = clamp(a.h + (a.ch.P.hy || 0.4) - player.feet, 0, 1.8);
-  const near = gap < 0.3;
-  hs.crouch = near && hs.reachH < 0.8;
+  strokePoint(a, hs);
+  // a cabeça do bicho em relação aos pés da Duda: no chão ela agacha; no alto (o Mingau no muro) o carinho é em pé
+  const hc = a.ch.bones[1].localToWorld(_pt.c.set(0, 0.06, 0.06));
+  const rel = _pt.rel.copy(hc).sub(player.pos), hgt = rel.dot(up);
+  const flat = Math.sqrt(Math.max(0, rel.lengthSq() - hgt * hgt));
+  const low = hgt < 0.85;
+  // longe para a mão (meio-fio, muro): a Duda dá uns passos até ele, até alcançar ou não ter mais como chegar
+  const gap = flat - (low ? 0.5 : 0.36);
+  if (gap < a.heroGap - 0.01) { a.heroGap = gap; a.heroStill = 0; } else if (player.auto) a.heroStill += dt;
+  // o cachorro chega primeiro e senta; só então ela anda o que faltar (nunca para cima dele)
+  const settled = a.pet === 'cat' || (a.petT > 0.6 && a.speed < 0.15) || a.petT > 2.5;
+  player.auto = settled && gap > 0.04 && a.dist > 0.62 && a.petT < 5 && a.heroStill < 0.5 ? { dir: _pd.copy(dir), speed: clamp(gap * 2.2, 0.45, 1.3) } : null;
+  const near = settled && (gap < 0.07 || a.dist <= 0.62 || a.heroStill > 0.5 || a.petT > 5);
+  hs.crouch = near && low;
   hs.pet = near && a.dist < 1.4;
   if (hs.pet) { a.ch.st.happy = Math.max(a.ch.st.happy, 0.25); a.ch.st.wag = Math.max(a.ch.st.wag, 0.3); }
+  else a.ch.st.petted = 0;
 }
 // a Duda olha para quem fala com ela, ou para quem está perto e na frente
 const _h = { rel: V3(), r: V3(), p: V3() };
@@ -217,7 +246,9 @@ function heroLook() {
   }
   if (!best) { hs.lookT.yaw = 0; hs.lookT.pitch = 0; return; }
   const aup = best.up || best.d;
-  _h.p.copy(best.ch.rig.position).addScaledVector(aup, best.ch.pet ? (best.ch.P.hy || 0.4) : best.ch.headY);
+  // fazendo carinho: olha para a mão
+  if (best.pet && hs.pet && hs.petAt) _h.p.copy(hs.petAt);
+  else _h.p.copy(best.ch.rig.position).addScaledVector(aup, best.ch.pet ? (best.ch.P.hy || 0.4) : best.ch.headY);
   _h.rel.subVectors(_h.p, player.head);
   _h.r.crossVectors(up, f);
   const lx = _h.rel.dot(_h.r), lz = _h.rel.dot(f), ly = _h.rel.dot(up);

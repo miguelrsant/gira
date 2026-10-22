@@ -4,7 +4,7 @@ import { C, clamp, lerp, rand, rr } from '../core/math.js';
 import { cylG, Geo, GEO, sphG, TM, torG } from '../world/geo.js';
 import { charMat, setFace } from './bodies.js';
 import { faceSheet, hexMix, slotUV } from './faces.js';
-import { headGeos, taperG } from './parts.js';
+import { HEADK, headGeos, taperG } from './parts.js';
 
 export function makePet(kind) {
   const cat = kind === 'cat';
@@ -55,7 +55,9 @@ export function makePet(kind) {
   mesh.castShadow = true; mesh.receiveShadow = true;
   mesh.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0.3, 0), 0.9);
   const rig = new THREE.Group(); rig.add(mesh);
-  return { pet: true, cat, rig, mesh, bones, mat, slot, height: hy + hr * 1.6, P: { bodyY, s, len, hy }, st: { t: rand() * 10, speed: 0, phase: 0, w: 0, pose: cat ? 'sleep' : 'stand', look: { yaw: 0, pitch: 0 }, lookT: { yaw: 0, pitch: 0 }, blink: 2, blinkOn: 0, happy: 0, sleep: cat, frame: -1, wag: 0, talk: false, mouth: 0 }, d: new THREE.Vector3(0, 1, 0), fwd: new THREE.Vector3(0, 0, 1), h: 0 };
+  // hr/ht/hd: raio e forma do alto da cabeça (onde a mão da Duda faz carinho)
+  const HK = HEADK[cat ? 'cat' : 'dog'];
+  return { pet: true, cat, rig, mesh, bones, mat, slot, height: hy + hr * 1.6, P: { bodyY, s, len, hy, hr, ht: HK.tall, hd: HK.deep }, st: { t: rand() * 10, speed: 0, phase: 0, w: 0, pose: cat ? 'sleep' : 'stand', look: { yaw: 0, pitch: 0 }, lookT: { yaw: 0, pitch: 0 }, blink: 2, blinkOn: 0, happy: 0, sleep: cat, frame: -1, wag: 0, talk: false, mouth: 0, petted: 0, petW: 0 }, d: new THREE.Vector3(0, 1, 0), fwd: new THREE.Vector3(0, 0, 1), h: 0 };
 }
 export function posePet(ch, dt) {
   const st = ch.st, B = ch.bones, P = ch.P;
@@ -87,6 +89,9 @@ export function posePet(ch, dt) {
   st.wag = Math.max(0, st.wag - dt);
   const L = st.look, LT = st.lookT, kl = 1 - Math.exp(-dt * 5);
   L.yaw = lerp(L.yaw, LT.yaw, kl); B[1].rotation.y += L.yaw;
+  // ganhando carinho: empina a cabeça na mão e encosta um pouco de lado
+  st.petW = lerp(st.petW, st.petted || 0, 1 - Math.exp(-dt * 4));
+  if (st.petW > 0.01) { B[1].rotation.x -= 0.22 * st.petW; B[1].rotation.z += (0.12 + Math.sin(t * 1.7) * 0.06) * st.petW; }
   let fr = 0;
   st.blink -= dt; if (st.blink < 0) { st.blinkOn = 0.14; st.blink = rr(2, 5); }
   if (st.blinkOn > 0) { st.blinkOn -= dt; fr = 1; }

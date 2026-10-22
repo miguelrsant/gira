@@ -129,8 +129,81 @@ function initGait(st, ch) {
     prevF: null, support: rand() < 0.5 ? 1 : -1, sw: 0, shiftT: rr(2, 7),
     breath: rand() * TAU, effort: 0, glance: { yaw: 0, pitch: 0 }, glanceT: { yaw: 0, pitch: 0 }, glanceTimer: rr(1, 4),
     gest: null, gestT: 0, idleT: 0, fidgetT: rr(6, 12), tg: null, tgT: 0, tgW: 0, toeTap: 0,
-    crouch: 0, pet: 0, reach: 0, air: 0, pre: 0, wasAir: false,
+    crouch: 0, pet: 0, reach: 0, air: 0, pre: 0, wasAir: false, cd: 0.5, rl: 0,
   };
+}
+
+// ---- braço até um ponto, com a mão deitada no que toca (dois ossos + pulso) ----
+const _k = {
+  c: new THREE.Vector3(), n: new THREE.Vector3(), f: new THREE.Vector3(), w: new THREE.Vector3(), o: new THREE.Vector3(), D: new THREE.Vector3(),
+  pole: new THREE.Vector3(), u: new THREE.Vector3(), fa: new THREE.Vector3(), x: new THREE.Vector3(), y: new THREE.Vector3(), z: new THREE.Vector3(), r: new THREE.Vector3(),
+  a: new THREE.Vector3(), b: new THREE.Vector3(),
+  m: new THREE.Matrix4(), qt: new THREE.Quaternion(), qa: new THREE.Quaternion(), qf: new THREE.Quaternion(), qh: new THREE.Quaternion(), qw: new THREE.Quaternion(), qi: new THREE.Quaternion(), e: new THREE.Euler(),
+};
+// tudo no sistema do tronco: C = onde a palma encosta, N = normal do que ela toca (para fora), F = para onde os dedos apontam,
+// pole = para onde o cotovelo aponta. k mistura com a pose de antes. Devolve a distância até o pulso / alcance do braço.
+function reachArm(B, P, side, C, N, F, pole, k) {
+  const ag = P.ag || 1, arm = B[side > 0 ? 3 : 5], fore = B[side > 0 ? 4 : 6], hand = B[side > 0 ? 16 : 17];
+  const L1 = P.arm, L2 = P.fore, reach = L1 + L2, S = arm.position;
+  // mão: palma para o que toca, dedos para F (o polegar fica para dentro)
+  _k.y.copy(F).addScaledVector(N, -F.dot(N));
+  if (_k.y.lengthSq() < 1e-8) _k.y.set(0, 0, 1);
+  _k.y.normalize().negate(); _k.x.crossVectors(_k.y, N);
+  _k.m.makeBasis(_k.x, _k.y, N); _k.qh.setFromRotationMatrix(_k.m);
+  // o pulso fica onde a mão (centro a meia palma acima) pede
+  const W = _k.w.copy(C).addScaledVector(N, 0.022 * ag).sub(_k.o.set(0, -0.036 * ag, 0.004).applyQuaternion(_k.qh));
+  const D = _k.D.subVectors(W, S), d0 = D.length();
+  D.divideScalar(Math.max(d0, 1e-6));
+  const d = clamp(d0, Math.abs(L1 - L2) + 0.03, reach * 0.999);
+  const ca = clamp((L1 * L1 + d * d - L2 * L2) / (2 * L1 * d), -1, 1), sa = Math.sqrt(1 - ca * ca);
+  const flex = Math.PI - Math.acos(clamp((L1 * L1 + L2 * L2 - d * d) / (2 * L1 * L2), -1, 1));
+  const pl = _k.pole.copy(pole).addScaledVector(D, -pole.dot(D));
+  if (pl.lengthSq() < 1e-6) pl.set(side, 0, 0);
+  pl.normalize();
+  const u = _k.u.copy(D).multiplyScalar(ca).addScaledVector(pl, sa);              // ombro → cotovelo
+  const fa = _k.fa.copy(D).multiplyScalar(d).addScaledVector(u, -L1).normalize();  // cotovelo → pulso
+  // osso do braço: -y ao longo dele, +z para o lado em que o antebraço dobra
+  _k.y.copy(u).negate();
+  _k.z.copy(fa).addScaledVector(u, -fa.dot(u));
+  if (_k.z.lengthSq() < 1e-6) _k.z.copy(pl).negate();
+  _k.z.normalize();
+  _k.x.crossVectors(_k.y, _k.z);
+  _k.m.makeBasis(_k.x, _k.y, _k.z); _k.qa.setFromRotationMatrix(_k.m);
+  _k.qf.setFromEuler(_k.e.set(-flex, 0, 0));
+  // pulso: o resto da rotação até a mão deitar, com limite de junta
+  const qw = _k.qw.copy(_k.qa).multiply(_k.qf).invert().multiply(_k.qh);
+  const ang = 2 * Math.acos(clamp(Math.abs(qw.w), 0, 1));
+  if (ang > 1.1) qw.copy(_k.qi.identity().slerp(qw, 1.1 / ang));
+  arm.quaternion.slerp(_k.qa, k); fore.quaternion.slerp(_k.qf, k); hand.quaternion.slerp(qw, k);
+  return d0 / reach;
+}
+// carinho: a mão direita no alto da cabeça do bicho (st.petAt / st.petN, no mundo, vêm de actors.js);
+// agachada, a esquerda apoia na coxa perto do joelho
+const POLE_R = new THREE.Vector3(-1, -0.55, -0.3), POLE_L = new THREE.Vector3(1, -0.2, -0.8);
+function petArm(ch, G, k, dt, cr) {
+  const B = ch.bones, P = ch.P, st = ch.st, torso = B[1];
+  torso.updateWorldMatrix(true, false);
+  // agachada bem baixinho; se a cabeça do bicho é mais alta que o ombro assim, agacha menos
+  const tl = ch.rig.worldToLocal(_k.r.copy(st.petAt));
+  const cdT = clamp((P.hip - (tl.y - 0.01 - (P.shY - P.hip) * 0.93)) / P.hip, 0.15, 0.5);
+  if (cr > 0.05) G.cd = lerp(G.cd, cdT, 1 - Math.exp(-dt * 4));
+  const qt = torso.getWorldQuaternion(_k.qt).invert();
+  const C = torso.worldToLocal(_k.c.copy(st.petAt));
+  const N = _k.n.copy(st.petN).applyQuaternion(qt).normalize();
+  // dedos para longe do ombro
+  const F = _k.f.subVectors(C, B[5].position);
+  const ratio = reachArm(B, P, -1, C, N, F, POLE_R, k);
+  // não alcança: inclina o tronco mais um pouco (vale no próximo quadro); sobrou braço, desinclina
+  G.rl = clamp(G.rl + clamp((ratio - 0.94) * (P.arm + P.fore) / 0.36, -1, 1) * dt * 2.5, 0, 0.35);
+  if (cr > 0.3) {
+    // mão esquerda na coxa, pertinho do joelho, dedos para o joelho
+    const hip = torso.worldToLocal(B[7].getWorldPosition(_k.a)), knee = torso.worldToLocal(B[8].getWorldPosition(_k.b));
+    const th = _k.f.subVectors(knee, hip).normalize();
+    const upT = _k.n.set(0, 1, 0).applyQuaternion(torso.getWorldQuaternion(_k.qt).invert().multiply(ch.rig.getWorldQuaternion(_k.qi)));
+    upT.addScaledVector(th, -upT.dot(th)).normalize();
+    const C2 = _k.c.copy(hip).lerp(knee, 0.82).addScaledVector(upT, 0.062);
+    reachArm(B, P, 1, C2, upT, th, POLE_L, k * sstep(0.3, 0.8, cr));
+  }
 }
 
 export function poseChar(ch, dt) {
@@ -139,7 +212,7 @@ export function poseChar(ch, dt) {
   const G = st.g;
   st.t += dt;
   const t = st.t;
-  for (let i = 0; i < 16; i++) { B[i].rotation.set(0, 0, 0); B[i].position.copy(G.rest[i]); }
+  for (let i = 0; i < B.length; i++) { B[i].rotation.set(0, 0, 0); B[i].position.copy(G.rest[i]); }
   B[0].scale.set(1, 1, 1);
   // humor: o jeito muda devagar, sem pulo
   const want = STYLES[st.mood] || STYLES.tranquila, kst = 1 - Math.exp(-dt * 1.4), S = G.style;
@@ -220,13 +293,13 @@ export function poseChar(ch, dt) {
   const air = G.air;
   if (standing) {
     B[0].position.y = P.hip - hipLow * w + bounce * w * (1 - air) + clamp(G.land.x, -0.22, 0.05) - G.pre * 0.07 * G.leg / 0.715
-      - 0.006 * idle - lerp(0, P.hip * 0.5, cr) + (0.004 * br * idle) * (1 - cr);
+      - 0.006 * idle - lerp(0, P.hip * G.cd, cr) + (0.004 * br * idle) * (1 - cr);
     B[0].position.x = (Math.cos(TAU * (uc - duty * 0.5)) * 0.016 * w * (1 - jog * 0.5) + swI * 0.026) * (1 - cr);
     B[0].position.z = -0.03 * cr;
     const yaw = -0.11 * lerp(1, 1.4, jog) * (fL.z - fR.z) / Math.max(2 * E, 0.05) * w;
     B[0].rotation.y = yaw;
     B[0].rotation.z = (Math.cos(TAU * (uc - duty * 0.5)) * 0.035 * w * (1 - jog * 0.6) + swI * 0.055) * (1 - cr) + G.bank * 0.6;
-    B[0].rotation.x = 0.28 * cr;
+    B[0].rotation.x = 0.18 * cr;
     // pernas
     const lowH = P.ank;
     if (air > 0.02) {
@@ -253,7 +326,7 @@ export function poseChar(ch, dt) {
     }
     // ---- tronco ----
     const lean = 0.03 * w + lerp(0, lerp(0.12, 0.22, run), jog) + S.lean + slump * 0.2 + G.lean.x + G.settle.x * 2.2;
-    B[1].rotation.x = lean * (1 - cr) + 0.32 * cr + 0.014 * br * brA - 0.3 * G.pre + (air > 0.02 ? lerp(0.12, -0.08, sstep(-1.5, 2.5, st.vy || 0)) * air : 0) + (P.stoop || 0);
+    B[1].rotation.x = lean * (1 - cr) + 0.2 * cr + G.rl * G.pet + 0.014 * br * brA - 0.3 * G.pre + (air > 0.02 ? lerp(0.12, -0.08, sstep(-1.5, 2.5, st.vy || 0)) * air : 0) + (P.stoop || 0);
     B[1].rotation.y = -yaw * 1.55;
     B[1].rotation.z = -B[0].rotation.z * 0.75 + G.bank * 0.25 - swI * 0.02;
     B[0].scale.y = 1 + (air > 0.02 ? 0.035 * sstep(0, 4, st.vy || 0) * air : 0) + clamp(G.land.x, -0.2, 0) * 0.35;
@@ -329,23 +402,16 @@ export function poseChar(ch, dt) {
   else if (act === 'sleepy') { B[2].rotation.x += 0.45 * aw; B[2].rotation.z += 0.2 * aw; B[1].rotation.x += 0.15 * aw; }
   else if (act === 'carry') { setA(5, -0.05, 0, -0.22); setA(6, -0.15, 0, 0); }
   else if (act === 'sweat') { setA(3, -0.2, 0, 0.2); setA(4, -2.3, 0, -0.6); B[2].rotation.x += 0.1 * aw; }
-  // ---- carinho no bicho: agachada, uma mão faz carinho e a outra apoia no joelho ----
+  // ---- carinho no bicho: as mãos vão para o lugar no fim (petArm), depois do tronco pronto ----
   G.pet = lerp(G.pet, st.pet ? 1 : 0, 1 - Math.exp(-dt * 5));
   const pw = G.pet;
   if (pw > 0.01) {
-    const high = st.reachH || 0, stroke = Math.sin(t * 5.5);
-    // bicho no alto (gato no muro): carinho em pé, braço esticado
-    const ax = high > 0.8 ? -1.35 + clamp((high - 0.9) * 0.6, -0.3, 0.25) : -0.95;
-    B[5].rotation.x = lerp(B[5].rotation.x, ax + stroke * 0.14, pw);
-    B[5].rotation.z = lerp(B[5].rotation.z, -0.12, pw);
-    B[6].rotation.x = lerp(B[6].rotation.x, -0.4 - Math.max(0, stroke) * 0.25, pw);
-    if (cr > 0.3) { B[3].rotation.x = lerp(B[3].rotation.x, -0.75, pw * cr); B[3].rotation.z = lerp(B[3].rotation.z, 0.22, pw * cr); B[4].rotation.x = lerp(B[4].rotation.x, -1.0, pw * cr); }
     B[2].rotation.z += Math.sin(t * 1.3) * 0.08 * pw;
-  }
+  } else G.rl = 0;
   // ---- gestos (humor, tédio de ficar parada, heroGesture) ----
   let eyesShut = false, mouthOpen = false;
   if (st.gesture) { G.gest = st.gesture; G.gestT = 0; st.gesture = null; }
-  if (!standing || air > 0.3 || cr > 0.3) G.gest = null;
+  if (!standing || air > 0.3 || cr > 0.3 || pw > 0.3) G.gest = null;
   // ficou parada: de vez em quando faz alguma coisa (só quem tem humor, ou seja, a Duda)
   if (st.mood && standing && w < 0.05 && !act && !G.gest && !st.talk && pw < 0.05) {
     G.idleT += dt;
@@ -400,6 +466,8 @@ export function poseChar(ch, dt) {
     if (cr > 0.01) B[2].rotation.x -= 0.4 * cr;
   }
   if (st.talk) B[2].rotation.x += Math.sin(t * 6.5) * 0.035 + Math.sin(t * 2.3) * 0.02;
+  // carinho: com o tronco já no lugar, o braço direito alcança a cabeça do bicho (andou, solta)
+  if (pw > 0.01 && st.petAt && B[17]) petArm(ch, G, pw * (1 - sstep(0.1, 0.5, w)), dt, cr);
   // rabo de cavalo
   B[13].rotation.x = 0.1 + Math.sin(st.phase * 2) * 0.12 * w + run * 0.35 - B[1].rotation.x * 0.6 - B[2].rotation.x * 0.5 + air * 0.4 - G.land.x * 2;
   B[13].rotation.z = Math.sin(st.phase) * 0.1 * w + Math.sin(t * 1.3) * 0.03;
