@@ -1,10 +1,24 @@
+<div align="center">
+
+<a href="https://gira-six.vercel.app"><img src="docs/titulo.jpg" alt="Tela inicial do GIRA: o planeta com as letras GI RA e o botão Começar" width="100%"></a>
+
 # GIRA
 
 **É um planeta pequeno, mas alguém tem que fazer ele girar.**
 
-GIRA é um joguinho de navegador sobre um planeta minúsculo que só gira quando você anda. Cada volta completa é um dia de trabalho, o chefe sempre quer mais uma volta, e a semana tem seis dias de expediente para um domingo que nunca chega. É uma crítica bem-humorada à escala 6x1, à rotina que anda em círculos e ao cansaço de quem mantém tudo funcionando.
+<a href="https://gira-six.vercel.app"><img src="https://img.shields.io/badge/%E2%96%B6%20Ver%20projeto-F5B841?style=for-the-badge" alt="Ver projeto" height="36"></a>
 
-![Tela inicial do GIRA: o planeta com as letras GI RA e o botão Começar](docs/titulo.jpg)
+<img src="https://img.shields.io/badge/three.js-000000?style=flat-square&logo=threedotjs&logoColor=white" alt="three.js">
+<img src="https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB" alt="React">
+<img src="https://img.shields.io/badge/zustand-443E38?style=flat-square" alt="zustand">
+<img src="https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite">
+<img src="https://img.shields.io/badge/licen%C3%A7a-MIT-3DA639?style=flat-square" alt="Licença MIT">
+
+</div>
+
+<br>
+
+GIRA é um joguinho de navegador sobre um planeta minúsculo que só gira quando você anda. Cada volta completa é um dia de trabalho, o chefe sempre quer mais uma volta, e a semana tem seis dias de expediente para um domingo que nunca chega. É uma crítica bem-humorada à escala 6x1, à rotina que anda em círculos e ao cansaço de quem mantém tudo funcionando.
 
 ## O jogo
 
@@ -15,9 +29,10 @@ GIRA é um joguinho de navegador sobre um planeta minúsculo que só gira quando
 - **A Duda sente a semana.** O rosto, a postura e o passo dela mudam com o humor do dia: brava na segunda, entediada na terça, arrastando os pés de cansaço no fim da semana. Dá para fazer carinho no Caramelo (ela agacha e passa a mão na cabeça dele) e no Mingau, em cima do muro.
 - **Uma semana, uma escolha.** O que acontece no sétimo dia depende de você.
 
-![Duda conversando com Seu Lino, sentado num banco da praça](docs/conversa.jpg)
-
-![Duda agachada passando a mão na cabeça do Caramelo](docs/carinho.jpg)
+<p align="center">
+  <img src="docs/conversa.jpg" alt="Duda conversando com Seu Lino, sentado num banco da praça" width="49%">
+  <img src="docs/carinho.jpg" alt="Duda agachada passando a mão na cabeça do Caramelo" width="49%">
+</p>
 
 ## Controles
 
@@ -103,3 +118,11 @@ Não há imagens nem áudios externos: casas, rostos, letreiros e música são g
 ## Licença
 
 [MIT](LICENSE) © 2026 Miguel Angelo
+
+---
+
+<div align="center">
+
+Feito por **Miguel Angelo** · [miguelrsant.com.br](https://miguelrsant.com.br) · [LinkedIn](https://www.linkedin.com/in/miguelrsant) · [GitHub](https://github.com/miguelrsant)
+
+</div>
