@@ -16,6 +16,7 @@ export const ITEMS = {
   foto: { name: 'FOTO DE 1987', color: '#e9d7a0', ink: '#8a6a3a' },
   jornal: { name: 'FOLHA DE JORNAL', color: '#efeee6', ink: '#7d8a88' },
   desenho: { name: 'DESENHO DA BIA', color: '#ffffff', ink: '#66bde6' },
+  caderno: { name: 'CADERNO DE AQUARELA', color: '#f4f4ef', ink: '#de794e' },
   escala: { name: 'ESCALA DE DOMINGO', color: '#f4f4ef', ink: '#c25959' },
 };
 
@@ -106,6 +107,12 @@ export const MISSIONS = {
       { do: 'talk', who: 'neide', text: 'Devolver a folha pra Dona Neide', bubble: 'Achou?',
         lines: ['Obrigada, filha.', 'Trinta anos vendendo notícia. Nunca vendi uma que dissesse "hoje ninguém precisa andar".', 'Se um dia sair, eu dou de graça.'], support: 'neide' },
     ] },
+    { id: 'compasso', title: 'Fora do compasso', steps: [
+      { do: 'talk', who: 'ronaldo', text: 'Falar com o Ronaldo na avenida', bubble: 'Um, dois, um, dois...',
+        lines: ['Duda, me salva desse ritmo de marcha!', 'Faz um barulho diferente aí, um grito de contratempo, pra eu lembrar como é samba!'] },
+      { do: 'emote', who: 'ronaldo', emote: '!', r: 6, text: 'Mandar um ! perto do Ronaldo pra quebrar a marcha (tecla 1)', say: 'ronaldo',
+        lines: ['Aí sim! Contratempo na veia!', 'Se tiver roda de descanso no domingo, o violão é por minha conta.'], support: 'ronaldo' },
+    ] },
   ],
   5: [
     { id: 'desenho', main: true, title: 'O desenho da Bia', steps: [
@@ -122,6 +129,14 @@ export const MISSIONS = {
       { do: 'emote', who: 'marcos', emote: '!', r: 7, text: 'Fazer um ! pra torcer pelo Marcos (tecla 1)', say: 'marcos',
         lines: ['Ha! Ninguém nunca torceu por mim aqui dentro.', 'A roda até girou mais leve. Ou fui eu.'], support: 'marcos' },
     ] },
+    { id: 'aquarela', title: 'O caderno de aquarela', steps: [
+      { do: 'talk', who: 'luana', text: 'Falar com a Luana na avenida', bubble: 'Meu caderno caiu!',
+        lines: ['Duda! Meu caderno de pintura escorregou da mochila quando passei perto da *Horta Comunitária*!', 'Não posso voltar contra o fluxo que o fiscal reclama. Você olha lá pra mim?'] },
+      { do: 'get', item: 'caderno', at: [-15, 79], text: 'Procurar o caderno da Luana na Horta Comunitária',
+        lines: ['Um caderno pequeno, cheio de manchas coloridas.', 'Na última página, um esboço a lápis da avenida vazia, cheia de árvores e bancos ocupados.'] },
+      { do: 'talk', who: 'luana', text: 'Devolver o caderno pra Luana', bubble: 'Achou ele?!',
+        lines: ['Meu caderno! Nem sujou de terra!', 'Se a gente conseguir parar no domingo, te faço um retrato descansando.'], support: 'luana' },
+    ] },
   ],
   6: [
     { id: 'escala', main: true, title: 'A escala de domingo', steps: [
@@ -135,6 +150,14 @@ export const MISSIONS = {
         lines: ['ESCALA DE DOMINGO.', 'Todos os nomes. O seu também. Do lado de cada um: "REMANEJAR".', 'Grampeado atrás, um bilhete: *"Ele gira sozinho. Não espalhem."*'] },
       { do: 'talk', who: 'nara', text: 'Mostrar a escala pra Nara', bubble: 'E aí?',
         lines: (f, n) => ['Então é isso. Eles sempre souberam.', 'Amanhã vão cancelar a folga. E amanhã a gente para.', n > 0 ? `Somos eu, você e mais ${n}. Já dá pra começar.` : 'Nem que seja só eu e você.'] },
+    ] },
+    { id: 'recado', title: 'Recado de fôlego', steps: [
+      { do: 'talk', who: 'beto', text: 'Falar com o Beto na avenida', bubble: 'Viu a Daiane?',
+        lines: ['Ô Duda, a gente anda na mesma rua e nunca se alcança.', 'Avisa a *Daiane* que amanhã, se cancelarem a folga, eu vou parar junto com a padaria da Nara?'] },
+      { do: 'talk', who: 'daiane', text: 'Levar o recado do Beto pra Daiane', bubble: 'Recado pra mim?',
+        lines: ['O Beto falou isso?!', 'Diz pra ele que eu e a Tati também fechamos! Amanhã ninguém anda sozinho.'], support: 'daiane' },
+      { do: 'talk', who: 'beto', text: 'Contar a resposta da Daiane pro Beto', bubble: 'Falou com ela?',
+        lines: ['Ela topou? Ufa. Dá até um fôlego novo nas pernas.', 'Amanhã a gente descansa de verdade.'], support: 'beto' },
     ] },
   ],
 };

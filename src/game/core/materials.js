@@ -7,8 +7,8 @@ export function makeGrad(arr) {
   const t = new THREE.DataTexture(new Uint8Array(arr), arr.length, 1, THREE.RedFormat);
   t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t;
 }
-const grad3 = makeGrad([92, 172, 255]);
-export const grad2 = makeGrad([128, 255]);
+const grad3 = makeGrad([84, 150, 214, 255]);
+export const grad2 = makeGrad([126, 206, 255]);
 
 // ================= materiais toon com padrões e código de contorno =================
 export const U = { time: { value: 0 } };
@@ -28,41 +28,58 @@ const PAT_FS = `
   float typ = floor(code / 8.0 + 0.01);
   vec2 q = vPat.xy;
   float m = 1.0;
+  vec3 tint = vec3(1.0);
   if (typ > 0.5) {
-    if (typ < 1.5) {            // tijolo
-      float row = floor(q.y / 0.26); float x = q.x / 0.52 + mod(row, 2.0) * 0.5;
-      m = (fract(q.y / 0.26) < 0.1 || fract(x) < 0.05) ? 0.87 : 1.0;
-    } else if (typ < 2.5) {     // blocos de pedra
-      float row = floor(q.y / 0.55); float x = q.x / 0.95 + h12(vec2(row, 3.0));
+    if (typ < 1.5) {            // tijolo aparente com variação por peça
+      float row = floor(q.y / 0.25); float x = q.x / 0.50 + mod(row, 2.0) * 0.5;
+      float bi = h12(vec2(floor(x), row));
+      bool mortar = fract(q.y / 0.25) < 0.11 || fract(x) < 0.055;
+      m = mortar ? 0.82 : (0.93 + bi * 0.12);
+      if (!mortar) tint = mix(vec3(1.03, 0.97, 0.94), vec3(0.96, 1.01, 1.02), bi);
+    } else if (typ < 2.5) {     // blocos de pedra talhada
+      float row = floor(q.y / 0.52); float x = q.x / 0.92 + h12(vec2(row, 3.0));
       float b = h12(vec2(floor(x), row));
-      m = ((fract(q.y / 0.55) < 0.07 || fract(x) < 0.04) ? 0.8 : 1.0) * (0.94 + b * 0.09);
-    } else if (typ < 3.5) {     // tábuas verticais
-      float k = floor(q.x / 0.24);
-      m = fract(q.x / 0.24) < 0.08 ? 0.83 : (0.95 + h12(vec2(k, 1.0)) * 0.07);
-    } else if (typ < 4.5) {     // telha ondulada / metal
-      m = 0.89 + 0.11 * step(0.5, fract(q.x / 0.2));
-    } else if (typ < 5.5) {     // telhado de telhas
-      float row = floor(q.y / 0.2); float x = fract(q.x / 0.3 + mod(row, 2.0) * 0.5);
-      float arc = 1.0 - pow(abs(x * 2.0 - 1.0), 2.0);
-      m = (fract(q.y / 0.2) < 0.12 + arc * 0.12) ? 0.8 : 1.0;
-    } else if (typ < 6.5) {     // ladrilho
-      vec2 g = fract(q / 0.62); m = (g.x < 0.05 || g.y < 0.05) ? 0.89 : 1.0;
-    } else if (typ < 7.5) {     // ripas horizontais
-      m = fract(q.y / 0.2) < 0.11 ? 0.86 : 1.0;
+      bool joint = fract(q.y / 0.52) < 0.075 || fract(x) < 0.045;
+      m = (joint ? 0.78 : 1.0) * (0.92 + b * 0.12);
+    } else if (typ < 3.5) {     // tábuas de madeira com veio suave
+      float k = floor(q.x / 0.23);
+      float grain = sin(q.y * 16.0 + n2(q * 4.2) * 3.5) * 0.03;
+      m = fract(q.x / 0.23) < 0.085 ? 0.80 : (0.95 + h12(vec2(k, 1.0)) * 0.08 + grain);
+    } else if (typ < 4.5) {     // telha ondulada / metal vincado
+      float rib = sin(q.x * 31.4159) * 0.5 + 0.5;
+      m = 0.87 + 0.15 * smoothstep(0.25, 0.85, rib);
+    } else if (typ < 5.5) {     // telhado de telhas coloniais
+      float row = floor(q.y / 0.2); float cx = floor(q.x / 0.28 + mod(row, 2.0) * 0.5);
+      float x = fract(q.x / 0.28 + mod(row, 2.0) * 0.5);
+      float arc = 1.0 - pow(abs(x * 2.0 - 1.0), 1.8);
+      float tb = h12(vec2(cx, row));
+      m = ((fract(q.y / 0.2) < 0.12 + arc * 0.13) ? 0.78 : (0.95 + tb * 0.09));
+      tint = mix(vec3(1.03, 0.98, 0.95), vec3(0.97, 1.0, 0.96), tb);
+    } else if (typ < 6.5) {     // ladrilho de calçada / pátio
+      vec2 cell = floor(q / 0.60);
+      vec2 g = fract(q / 0.60);
+      float cb = h12(cell);
+      m = ((g.x < 0.055 || g.y < 0.055) ? 0.85 : (0.97 + cb * 0.05));
+    } else if (typ < 7.5) {     // ripas horizontais / veneziana
+      m = fract(q.y / 0.19) < 0.13 ? 0.83 : 1.01;
+    } else {                    // reboco pintado com textura de rolo e leve desgaste na base
+      float plaster = (n2(q * 3.4) - 0.5) * 0.05 + (n2(q * 11.0) - 0.5) * 0.025;
+      m = 1.0 + plaster;
     }
-    m *= mix(0.87, 1.0, smoothstep(0.0, 1.1, q.y));
-    m *= 0.95 + 0.08 * n2(q * 0.9);
+    m *= mix(0.86, 1.0, smoothstep(0.0, 1.15, q.y));
+    m *= 0.96 + 0.07 * n2(q * 0.85);
   }
-  diffuseColor.rgb *= m;
+  diffuseColor.rgb *= m * tint;
 }
 #endif
 #ifdef P_GROUND
 {
-  float n = n3(vWPos * 0.31) * 0.72 + n3(vWPos * 1.6 + 7.0) * 0.28;
-  float pt = step(0.57, n);
-  float spk = step(0.84, n3(vWPos * 6.5));
-  diffuseColor.rgb *= 1.0 + vG * (-0.11 * pt + 0.07 * spk * (1.0 - pt));
-  diffuseColor.rgb *= 1.0 - (1.0 - vG) * step(0.86, n3(vWPos * 8.0)) * 0.07;
+  float n = n3(vWPos * 0.31) * 0.68 + n3(vWPos * 1.55 + 7.0) * 0.32;
+  float pt = smoothstep(0.50, 0.62, n);
+  float clover = step(0.79, n3(vWPos * 4.4 + 2.1));
+  float spk = step(0.85, n3(vWPos * 7.2));
+  diffuseColor.rgb *= 1.0 + vG * (-0.10 * pt + 0.05 * clover * (1.0 - pt) + 0.07 * spk * (1.0 - pt));
+  diffuseColor.rgb *= 1.0 - (1.0 - vG) * step(0.84, n3(vWPos * 8.5)) * 0.065;
 }
 #endif
 `;
@@ -161,6 +178,16 @@ export function patchMat(mat, o = {}) {
       #endif
     `).replace('#include <color_fragment>', `#include <color_fragment>
       ${PAT_FS}
+    `).replace('#include <opaque_fragment>', `
+      #if !defined(P_GROUND) && !defined(P_GRASS)
+      {
+        vec3 vn = normalize(vNormal);
+        vec3 vd = normalize(vViewPosition);
+        float rim = pow(1.0 - clamp(abs(dot(vn, vd)), 0.0, 1.0), 3.4);
+        outgoingLight += diffuseColor.rgb * rim * 0.085;
+      }
+      #endif
+      #include <opaque_fragment>
     `).replace(/}\s*$/, PACK_FS + '\n}');
   };
   return mat;
@@ -171,7 +198,7 @@ export function toon(o = {}) {
 }
 // material de linha (fios): fica fora do código de contorno
 export function lineMat(color) {
-  const m = new THREE.LineBasicMaterial({ color });
+  const m = new THREE.LineBasicMaterial({ color, depthWrite: false });
   m.onBeforeCompile = (sh) => { if (PACK) sh.fragmentShader = sh.fragmentShader.replace(/}\s*$/, 'gl_FragColor.a = 0.0;\n}'); };
   return m;
 }

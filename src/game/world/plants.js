@@ -95,10 +95,12 @@ export function bush(c, x, z, s = 0.7, set) {
   const cf = leafCF(set);
   for (let i = 0; i < 3; i++) K.blob(c, x + rr(-0.35, 0.35) * s, (0.45 + rr(-0.1, 0.15)) * s, z + rr(-0.35, 0.35) * s, rr(0.55, 0.8) * s, rr(0.45, 0.65) * s, rr(0.55, 0.8) * s, cf, { sway: 0.4, swayH: 1.5, det: 1 });
 }
-function hedge(c, x, z, len, ry = 0) {
+export function hedge(c, x, z, len, ry = 0) {
+  c = drop(c, x, z);
+  solid(c, x, z, 0, len, 0.65, ry);
   const s = subCtx(c, x, 0, z, ry), cf = leafCF(LEAVES[2]);
   const n = Math.max(1, Math.round(len / 0.9));
-  for (let i = 0; i < n; i++) K.blob(s, -len / 2 + (i + 0.5) * len / n, 0.5, 0, 0.6, 0.55, 0.45, cf, { sway: 0.2, swayH: 1.5, det: 1 });
+  for (let i = 0; i < n; i++) K.blob(s, -len / 2 + (i + 0.5) * len / n, 0.46, 0, 0.6, 0.55, 0.45, cf, { sway: 0.2, swayH: 1.5, det: 1 });
 }
 export function flowers(c, x, z) {
   bush(c, x, z, 0.5);

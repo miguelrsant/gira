@@ -144,10 +144,11 @@ export function texAwning(c1, c2) {
     g.strokeStyle = 'rgba(55,63,66,.35)'; g.lineWidth = 2; for (let i = 1; i < 8; i++) { g.beginPath(); g.moveTo(i * 16, 0); g.lineTo(i * 16, 64); g.stroke(); }
   });
 }
-function texValance(c1, c2) {
-  return atlasAdd(`val:${c1}:${c2}`, 128, 32, (g) => {
-    for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? c2 : c1; g.beginPath(); g.moveTo(i * 16, 0); g.lineTo(i * 16 + 16, 0); g.lineTo(i * 16 + 16, 18); g.arc(i * 16 + 8, 18, 8, 0, Math.PI); g.closePath(); g.fill(); }
-    g.strokeStyle = INKS; g.lineWidth = 3; g.beginPath(); for (let i = 0; i < 8; i++) { g.moveTo(i * 16 + 16, 18); g.arc(i * 16 + 8, 18, 8, 0, Math.PI); } g.stroke();
+export function texValance(c1, c2, bg = '#d8d3c4') {
+  return atlasAdd(`val:${c1}:${c2}:${bg}`, 128, 32, (g) => {
+    g.fillStyle = bg; g.fillRect(0, 0, 128, 32);
+    for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? c2 : c1; g.beginPath(); g.moveTo(i * 16, 0); g.lineTo(i * 16 + 16, 0); g.lineTo(i * 16 + 16, 19); g.arc(i * 16 + 8, 19, 8, 0, Math.PI); g.closePath(); g.fill(); }
+    g.strokeStyle = INKS; g.lineWidth = 3; g.beginPath(); for (let i = 0; i < 8; i++) { g.moveTo(i * 16 + 16, 19); g.arc(i * 16 + 8, 19, 8, 0, Math.PI); } g.stroke();
   });
 }
 // cartazes (vários são easter eggs)
@@ -163,6 +164,8 @@ export function texPoster(kind) {
       sorte: ['#f4f4ef', '#4f86b8', 'LOTERIA', '1 DOMINGO', 'prêmio acumulado'],
       show: ['#c25959', '#f3c258', 'HOJE', 'SAMBA', 'cancelado\n(demanda alta)'],
       gato: ['#f4f4ef', '#373f42', 'PERDIDO?', 'NÃO.', 'o gato está ótimo.\nobrigado.'],
+      coral: ['#f3c258', '#373f42', 'ENSAIO', 'CORAL', 'quarta às 23h40\n(se der)'],
+      pao: ['#e7a58c', '#f4f4ef', 'PADARIA', 'NARA', 'pão quente\ne desabafo grátis'],
     }[kind] || ['#f4f4ef', '#373f42', '...', '...', ''];
     g.fillStyle = P[0]; g.fillRect(0, 0, w, h);
     g.textAlign = 'center'; g.fillStyle = P[1];
@@ -236,7 +239,32 @@ export function texGraffiti(text, c) {
     g.restore();
   });
 }
-function texPlate(text) { return texSign(text, '#4f86b8', '#f4f4ef', { w: 256, h: 64, font: 'lbl', fill: 0.62 }); }
+export function texPlate(text) { return texSign(text, '#4f86b8', '#f4f4ef', { w: 256, h: 64, font: 'lbl', fill: 0.62 }); }
+export function texHopscotch() {
+  return atlasAdd('hopscotch', 128, 256, (g) => {
+    g.fillStyle = '#c8c3b2'; g.fillRect(0, 0, 128, 256);
+    const chalk = ['#f4f4ef', '#f3c258', '#e7a58c', '#66bde6', '#8cc48c'];
+    g.lineWidth = 4; g.lineJoin = 'round'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = `20px ${FONT_HAND}`;
+    const cell = (x, y, w, h, lbl, ci) => {
+      g.strokeStyle = chalk[ci % chalk.length];
+      g.strokeRect(x, y, w, h);
+      g.fillStyle = chalk[ci % chalk.length];
+      g.fillText(lbl, x + w / 2, y + h / 2 + 1);
+    };
+    // Céu no topo
+    g.strokeStyle = '#f3c258';
+    g.beginPath(); g.arc(64, 42, 34, Math.PI, 0); g.closePath(); g.stroke();
+    g.fillStyle = '#f3c258'; g.fillText('CÉU', 64, 27);
+    cell(26, 46, 36, 28, '7', 1); cell(66, 46, 36, 28, '8', 2);
+    cell(46, 78, 36, 28, '6', 3);
+    cell(26, 110, 36, 28, '4', 4); cell(66, 110, 36, 28, '5', 0);
+    cell(46, 142, 36, 28, '3', 2);
+    cell(46, 174, 36, 28, '2', 3);
+    cell(46, 206, 36, 28, '1', 0);
+    inkRect(g, 3, 3, 122, 250, 3, 'rgba(55,63,66,.22)');
+  });
+}
 export function texWishes() {
   return atlasAdd('wishes', 512, 192, (g) => {
     g.fillStyle = '#f0e6cf'; g.fillRect(0, 0, 512, 192);

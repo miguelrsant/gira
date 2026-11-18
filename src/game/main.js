@@ -6,7 +6,7 @@ import { IS_TOUCH, QS } from './core/config.js';
 import { post, postCam, postScene } from './core/ink.js';
 import { U } from './core/materials.js';
 import { $, dirOf, eastOf, headingVec, latOf, lonOf, nextFrame, offsetDir, wait } from './core/math.js';
-import { camera, renderer, scene } from './core/renderer.js';
+import { afterDraw, camera, isSoftwareGl, renderer, scene } from './core/renderer.js';
 import { adaptResolution } from './core/screen.js';
 import { skyMat } from './core/skydome.js';
 import { ATL } from './world/atlas.js';
@@ -14,7 +14,7 @@ import { buildChunks, makeMaterials, updateChunks } from './world/chunks.js';
 import { addLandmarks } from './world/landmarks.js';
 import { defineWorld } from './world/layout.js';
 import { fillLots } from './world/lots.js';
-import { BUILDS, COLLIDERS, DISTRICTS, DYN, PAGES, SPOTS } from './world/places.js';
+import { BENCHES, BUILDS, COLLIDERS, DISTRICTS, DYN, PAGES, SPOTS } from './world/places.js';
 import { buildCorners, buildRoads } from './world/roads.js';
 import { buildGrass, scatter } from './world/scatter.js';
 import { buildWires, streetFurniture } from './world/street.js';
@@ -29,8 +29,8 @@ import { autoColliders, colliderLines, hashColliders, insideTall, pushOut } from
 import { updateSky } from './play/daylight.js';
 import { updateDialog } from './play/dialog.js';
 import { startStrike, startTalk, updateGame } from './play/director.js';
-import { initDynamics, updateDynamics } from './play/dynamics.js';
-import { refreshTasks, updateHud } from './play/hud.js';
+import { DYNS, initDynamics, updateDynamics } from './play/dynamics.js';
+import { refreshTasks, togglePhotoMode, updateHud } from './play/hud.js';
 import { initInput } from './play/input.js';
 import { updateOverlays } from './play/overlays.js';
 import { MISSION_DEBUG, updateMissions } from './play/missions.js';
@@ -44,7 +44,7 @@ import { buildTitle, startTitle, TITLE, updateTitle } from './play/title.js';
 const clock = new THREE.Clock(false);
 let hudT = 0;
 function frame() {
-  requestAnimationFrame(frame);
+  afterDraw(frame);
   const dt = Math.min(clock.getDelta(), 1 / 20), t = clock.elapsedTime;
   if (state.freeze) return;
   state.frame++;
@@ -109,17 +109,18 @@ export async function boot() {
   ATL.tex.needsUpdate = true; FACE.tex.needsUpdate = true;
   setMusic(state.musicOn);
   refreshTasks(); updateHud();
-  if (QS.has('skip')) quickStart();
+  const auto = QS.has('skip') || QS.get('autostart') === '1';
+  if (auto) quickStart();
   else { state.mode = 'title'; updateTitle(0); }
-  renderer.compile(scene, camera); renderer.compile(postScene, postCam);
+  if (!isSoftwareGl) { renderer.compile(scene, camera); renderer.compile(postScene, postCam); }
   await nextFrame();
   clock.start();
-  requestAnimationFrame(frame);
-  if (!QS.has('skip')) startTitle();
+  afterDraw(frame);
+  if (!auto) startTitle();
   window.__ready = true;
 }
 window.__gira = {
-  state, player, ACTORS, cam, camera, SPOTS, DISTRICTS, PAGES, PAGEOBJ, COLLIDERS, ATL, FACE, renderer, TITLE, insideTall, pushOut, groundAt, latOf, lonOf, camBlocked,
+  state, player, ACTORS, cam, camera, SPOTS, BENCHES, DYNS, DISTRICTS, PAGES, PAGEOBJ, COLLIDERS, ATL, FACE, renderer, TITLE, insideTall, pushOut, groundAt, latOf, lonOf, camBlocked, togglePhotoMode,
   go(la, lo, hd) { teleport(dirOf(la, lo), hd || 0); },
   near(id, back = 2.4) { const a = actor(id); const d = offsetDir(a.d, a.fwd, back); teleport(d, 0); player.fwd.copy(a.d).sub(player.d).normalize(); player.camFwd.copy(player.fwd); snapCamera(); },
   day(n) { state.day = n; refreshTasks(); },

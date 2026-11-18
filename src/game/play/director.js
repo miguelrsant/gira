@@ -3,7 +3,7 @@ import { setUI } from '../../store.js';
 import { DAYS, IS_TOUCH, LAP, R } from '../core/config.js';
 import { arcDist, clamp, V3, wait } from '../core/math.js';
 import { ctxDir } from '../world/kit.js';
-import { DISTRICTS, INTERACT, SPOTS } from '../world/places.js';
+import { BENCHES, DISTRICTS, INTERACT, SPOTS } from '../world/places.js';
 import { groundAt } from '../world/terrain.js';
 import { headline } from '../story/news.js';
 import { npcLines, strikeLines, valdirSpeech } from '../story/npcs.js';
@@ -15,7 +15,7 @@ import { openDialog } from './dialog.js';
 import { hideCard, hintOnce, refreshTasks, setCardText, setHint, showCard, toast, togglePanel } from './hud.js';
 import { dayTitle, mainPending, missionTalk, runMissionTalk } from './missions.js';
 import { respiroTalk, wakeLine } from './mood.js';
-import { player } from './player.js';
+import { player, sitOnBench, standUp } from './player.js';
 import { EXTRA_DIST, state } from './state.js';
 
 export async function startTalk(a) {
@@ -56,6 +56,7 @@ async function startRead(it) {
   cam.shot = null;
 }
 async function endDay() {
+  if (state.sitting) standUp();
   state.mode = 'cutscene'; target = null;
   togglePanel(null);
   const lastDay = state.day === 7;
@@ -92,6 +93,7 @@ function marcosOut(a) {
   placeActor(a);
 }
 export async function startStrike() {
+  if (state.sitting) standUp();
   state.strike = true; state.mode = 'cutscene'; target = null;
   togglePanel(null);
   const st = player.ch.st; st.pose = 'ground'; st.act = 'protest'; st.sign = true; player.actT = 0;
@@ -183,12 +185,30 @@ function findTarget() {
     const s = d + 0.35 - 0.7 * dir.dot(f);
     if (s < bs) { bs = s; best = { kind: 'it', it, name: it.name }; }
   }
+  if (state.sitting) {
+    if (!best) best = { kind: 'bench', b: state.sitting, sitting: true, name: 'BANCO' };
+  } else {
+    for (const b of BENCHES) {
+      const d = arcDist(player.d, b.d);
+      if (d > 1.65) continue;
+      if (ACTORS.some((a) => arcDist(a.d, b.d) < 0.95)) continue;
+      const dir = _tg.copy(b.d).sub(player.d).normalize();
+      const s = d + 0.42 - 0.6 * dir.dot(f);
+      if (s < bs) { bs = s; best = { kind: 'bench', b, sitting: false, name: 'BANCO' }; }
+    }
+  }
   target = best;
   return best;
 }
 export function interactNow() {
   const t = target || findTarget();
-  if (!t) return;
+  if (!t) { if (state.sitting) standUp(); return; }
+  if (t.kind === 'bench') {
+    if (t.sitting || state.sitting) { standUp(); setHint('Pronto. Pernas descansadas.', 2600); }
+    else { sitOnBench(t.b); setHint('Sentadinha um pouco. Aperte E ou ande para levantar. (ânimo +16)', 4000); }
+    return;
+  }
+  if (state.sitting) standUp();
   if (t.kind === 'npc') startTalk(t.a); else startRead(t.it);
 }
 

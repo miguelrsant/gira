@@ -6,8 +6,8 @@ import {
   bOrelhao, bPodium, bSchool, bShop, bStatue, bTower, bWarehouse, chimney,
 } from './buildings.js';
 import {
-  barrel, bench, boat, buoy, crate, fence, goal, lampPost, mailbox, picnic, planter, pot, rock,
-  signPost, slide, swing, towel, umbrella, vending,
+  barrel, bench, bike, boat, bunting, buoy, car, crate, fence, gasCyl, goal, lampPost, mailbox,
+  picnic, planter, pot, rock, signPost, slide, swing, towel, umbrella, vending,
 } from './furniture.js';
 import { ctxDir, drop, K, placeAt, placeDir, subCtx } from './kit.js';
 import { MAIN } from './layout.js';
@@ -16,12 +16,12 @@ import {
   addBoxCollider, addCircle, addCircleLocal, besideRoad, BUILDS, COLLIDERS, district, DYN, FOOT,
   footOf, interact, lot, nearestSample, onSidewalk, PAGES, reserve, solid, SPOTS,
 } from './places.js';
-import { leafCF, LEAVES, palm, tree } from './plants.js';
+import { hedge, leafCF, LEAVES, palm, tree } from './plants.js';
 import {
   fieldLine, hammock, lighthouse, loungeChair, plazaDisc, poolAt, rowboat, scarecrow, wheelFrame,
 } from './special.js';
 import { addZone, baseH, H } from './terrain.js';
-import { texClock, texDoor, texMenu, texSign, texWishes } from './textures.js';
+import { texClock, texDoor, texHopscotch, texMenu, texSign, texWishes } from './textures.js';
 
 export function addLandmarks() {
   // Praça do Relógio
@@ -39,10 +39,14 @@ export function addLandmarks() {
       for (const [x, z, ry] of [[-1.8, 3.6, Math.PI], [1.9, 3.6, Math.PI], [-4.2, -1.5, Math.PI / 2], [0.6, -4.3, 0]]) bench(c, x, z, ry);
       for (const [x, z] of [[-4.0, -3.4], [4.2, 2.6], [-0.9, -4.6]]) { tree(c, x, z, 0.95); addCircleLocal(c, x, z, 0.45); }
       for (const [x, z] of [[-4.6, 2.2], [4.6, -2.8], [2.8, 4.4], [-2.6, -4.4]]) lampPost(c, x, z);
+      bunting(c, -1.1, 4.8, 1.1, -4.5, 3.45, 2.2, 10);
+      bunting(c, 1.1, 4.8, -1.1, 4.5, 3.45, -2.8, 10);
+      bunting(c, 1.1, 4.8, 1.1, 2.8, 3.45, 4.4, 9);
       planter(c, 0, 4.6, 2.2);
       bOrelhao(drop(subCtx(c, 4.9, 0, 0.4, -Math.PI / 2), 0, 0));
-      K.box(c, -2.0, 0, -2.6, 0.7, 0.75, 0.55, '#5a8f73', { id: 5, layer: 'small' });
-      K.pl(c, -2.0, 0.5, -2.32, 0.55, 0.35, texSign('ACHADOS E\nPERDIDOS', '#5a8f73', '#f4f4ef', { font: 'lbl', w: 256, h: 160 }), { id: 6 });
+      const ac = drop(c, -2.0, -2.6);
+      K.box(ac, -2.0, -0.35, -2.6, 0.7, 1.1, 0.55, '#5a8f73', { id: 5, layer: 'small' });
+      K.pl(ac, -2.0, 0.5, -2.32, 0.55, 0.35, texSign('ACHADOS E\nPERDIDOS', '#5a8f73', '#f4f4ef', { font: 'lbl', w: 256, h: 160 }), { id: 6 });
     });
     interact(c, 0, 1.2, 1.4, { name: 'PLACA', lines: ['RELÓGIO DA PRAÇA — anda só quando você anda.', 'Doado pela Família Otávio, que não anda.'] });
     interact(c, -3.2, 1.0, 2.0, { name: 'ESTÁTUA', lines: ['AVÔ OTÁVIO (1952). Deu uma volta no planeta, uma vez.', 'A família descansa desde então.', 'Alguém deixou um tênis gasto no pedestal.'] });
@@ -79,11 +83,12 @@ export function addLandmarks() {
     interact(c, 2.15, 1.0, 4.3, { name: 'MÁQUINA', lines: ['ENERGÉTICO FOCO — agora com 300% mais segunda-feira.', 'Você aperta o botão. Sai uma lata escrita "só mais uma volta".'] });
     interact(c, -3.2, 3.0, 1.9, { name: 'FAIXA', lines: ['"SOMOS UMA FAMÍLIA."', 'Embaixo, bem pequeno: "família não recebe hora extra".'] });
     SPOTS.valdir = { c, x: -1.6, z: 3.2, y: 0.35 };
+    SPOTS.gira = c;
   }
   // Rua do Comércio
   district('RUA DO COMÉRCIO', 'aberto de segunda a segunda', 6, 44, 12);
   const shops = [
-    [34, 1, { sign: 'PÃO DE CADA DIA', signBg: '#de794e', front: 'glass', goods: 'bread', awning: ['#f3c258', '#f4f4ef'], wall: '#f0dcae', w: 5.2, d: 4.4, fl: 1 }, 'nara'],
+    [34, 1, { sign: 'PÃO DE CADA DIA', signBg: '#de794e', front: 'glass', goods: 'bread', awning: ['#f3c258', '#f4f4ef'], wall: '#f0dcae', w: 5.2, d: 4.4, fl: 1, posters: ['pao'] }, 'nara'],
     [41, 1, { sign: 'LOTÉRICA SORTE GRANDE', signBg: '#4f86b8', front: 'glass', goods: 'cheap', wall: '#e6e1d3', w: 4.2, d: 4, fl: 2, posters: ['sorte'] }, 'loterica'],
     [48, 1, { sign: 'DROGARIA DESCANSO', signBg: '#66bde6', front: 'glass', goods: 'pharma', wall: '#f4f4ef', w: 4.6, d: 4.2, fl: 2, balcony: true }, 'farmacia'],
     [56, 1, { sign: 'CORTE & VOLTA', signBg: '#c25959', front: 'glass', goods: 'cheap', wall: '#c4cdc5', w: 3.8, d: 4, fl: 1, posters: ['show'] }, 'barbeiro'],
@@ -103,7 +108,12 @@ export function addLandmarks() {
   interact(SPOTS.academia, 1.6, 1.5, 2.5, { name: 'CARTAZ', lines: ['CURSO MINDSET 7x0 com Rafa Foco.', 'Aprenda a descansar andando. Ou a andar descansando. Tanto faz, só 12x de 97.'] });
   interact(SPOTS.marmita, -1.0, 1.4, 2.3, { name: 'CARDÁPIO', lines: ['HOJE: marmita. Almoço em 4 minutos.', 'O quinto minuto é cobrado à parte.'] });
   interact(SPOTS.barbeiro, 1.2, 1.5, 2.3, { name: 'CARTAZ', lines: ['HOJE: SAMBA NA PRAÇA.', 'Por cima, um adesivo: CANCELADO (DEMANDA ALTA).'] });
-  BUILDS.push(() => { K.board(SPOTS.marmita, -1.0, 1.35, 2.15, 0.6, 0.75, texMenu(), {}); });
+  BUILDS.push(() => {
+    K.board(SPOTS.marmita, -1.0, 1.35, 2.15, 0.6, 0.75, texMenu(), {});
+    gasCyl(SPOTS.marmita, 1.8, 2.25);
+    bike(SPOTS.nara, -2.15, 2.48, 0.18, '#c25959');
+    bunting(SPOTS.nara, -2.4, 2.85, 2.35, 2.4, 2.85, 2.35, 9);
+  });
   // banca da Neide
   {
     // no terreno vazio depois das lojas (na calçada ela entrava na padaria)
@@ -129,10 +139,11 @@ export function addLandmarks() {
     BUILDS.push(() => {
       goal(c, -4.8, 0, Math.PI / 2); goal(c, 4.8, 0, -Math.PI / 2);
       for (const [x0, z0, x1, z1] of [[-5, -3.2, 5, -3.2], [-5, 3.2, 5, 3.2], [0, -3.2, 0, 3.2]]) fieldLine(c, x0, z0, x1, z1);
-      K.sph(c, 1.2, 0.18, 0.8, 0.18, 0.18, 0.18, '#f4f4ef', { id: 7, layer: 'small' });
+      K.pl(c, -2.3, 0.028, 2.05, 1.15, 2.3, texHopscotch(), { rx: -Math.PI / 2, id: 6 });
       signPost(c, -5.6, 3.6, texSign('PROIBIDO JOGAR\nBOLA EM DIA ÚTIL', '#f4f4ef', '#c25959', { font: 'lbl', w: 256, h: 160 }), 1.1, 0.7);
     });
     interact(c, -5.6, 1.6, 3.6, { name: 'PLACA', lines: ['PROIBIDO JOGAR BOLA EM DIA ÚTIL.', 'Pela escala, todo dia é útil.'] });
+    SPOTS.campinho = c;
     PAGES.push({ c, x: 4.6, y: 0.8, z: 0.6, note: 'Domingo: futebol no campinho. Perdemos de 7 a 1 e ninguém ligou.' });
   }
   // Vila do Sossego
@@ -145,7 +156,7 @@ export function addLandmarks() {
     const c = placeDir(d0, fs.s.clone().multiplyScalar(-1)), cb = drop(c, 0, 0);
     reserve(28.5, 99.5, 2.6);
     BUILDS.push(() => {
-      bench(cb, 0, 0, Math.PI); tree(c, -2.5, 0, 0.9); addCircleLocal(c, -2.5, 0, 0.4); lampPost(c, 2.3, 0);
+      bench(cb, 0, 0, Math.PI, { occupy: true }); tree(c, -2.5, 0, 0.9); addCircleLocal(c, -2.5, 0, 0.4); lampPost(c, 2.3, 0);
       pot(c, 1.35, 0, 0.8); pot(c, -1.35, 0, 0.8);
       K.pl(cb, 0.9, 0.62, 0.305, 0.32, 0.12, texSign('EM MEMÓRIA', '#a07c48', '#f3e1b0', { font: 'lbl', w: 256, h: 96 }), { id: 6 });
     });
@@ -160,12 +171,15 @@ export function addLandmarks() {
     reserve(47.5, 100, 7);
     BUILDS.push(() => {
       bSchool(c, {});
-      K.cyl(c, 5.6, 0, 4.4, 0.06, 6.0, '#d9dcd3', { n: 6 });
-      K.box(c, 6.15, 5.0, 4.4, 1.1, 0.7, 0.02, '#8cc48c', { id: 7 });
-      const wc = subCtx(c, -3.5, 0, 4.0);
-      K.box(wc, 0, -0.3, 0, 4.2, 1.9, 0.25, '#efe0b9', { id: 4, pat: 1 });
+      const fc = drop(c, 5.6, 4.4);
+      K.cyl(fc, 5.6, -0.6, 4.4, 0.06, 6.6, '#d9dcd3', { n: 6 });
+      K.box(fc, 6.15, 5.0, 4.4, 1.1, 0.7, 0.02, '#8cc48c', { id: 7 });
+      const wc = drop(subCtx(c, -3.5, 0, 4.0), 0, 0);
+      K.box(wc, 0, -0.9, 0, 4.2, 2.5, 0.25, '#efe0b9', { id: 4, pat: 1 });
       K.pl(wc, 0, 0.85, 0.13, 3.9, 1.45, texWishes(), { id: 6 });
       K.pl(c, 2.2, 1.6, 2.765, 0.9, 0.5, texSign('E PUR\nSI MUOVE', '#a07c48', '#f3e1b0', { font: 'lbl', w: 256, h: 140 }), { id: 6 });
+      K.pl(c, 3.5, 0.028, 4.05, 1.05, 2.1, texHopscotch(), { rx: -Math.PI / 2, id: 6 });
+      bike(c, -5.9, 3.85, 0.32, '#66bde6');
     });
     addBoxCollider(subCtx(c, -3.5, 0, 4.0), 4.2, 0.4);
     interact(c, -3.5, 1.0, 4.4, { name: 'MURAL DOS DESEJOS', lines: ['"Um domingo inteiro." "Ver meu pai acordado." "Dormir até tarde."', '"Que a mãe ria." "Ser astronauta (sem dar volta)." "Parar um pouco."'] });
@@ -192,7 +206,10 @@ export function addLandmarks() {
       // espreguiçadeiras no gramado da frente, viradas para a vista, fora do caminho do portão
       for (const sx of [-1, 1]) loungeChair(drop(subCtx(c, sx * 3.6, 0, 4.0, Math.PI), 0, 0, { max: 3 }));
       planter(c, -5.7, -0.2, 1.4);
+      hedge(c, -6.1, -2.5, 3.2, Math.PI / 2);
+      car(c, -5.5, 2.35, 0.38, '#f3c258');
     });
+    interact(c, -5.5, 0.9, 2.35, { name: 'CARRO DO OTÁVIO', lines: ['Odômetro: 000012 km. Desde 1988.', 'Pra que rodar se o planeta já vem até a porta?'] });
     SPOTS.otavio = { c: drop(subCtx(c, -3.6, 0, 4.0, Math.PI), 0, 0, { max: 3 }), x: 0, z: 0, y: 0.32 };
     PAGES.push({ c, x: 5.3, y: 0.8, z: 1.6, note: 'Domingo: fiquei na beira da piscina. Era de um vizinho. Ninguém viu.' });
     // muro circular com portão voltado para a Ladeira
@@ -236,6 +253,7 @@ export function addLandmarks() {
       addBoxCollider(subCtx(c, 5.95, 0, -0.65), 0.95, 4.3);
     });
     interact(c, 0, 4.2, 4.1, { name: 'PICHAÇÃO', lines: ['"6x1 NÃO". A tinta ainda está fresca.', 'Embaixo, outra letra: "e o domingo, cadê?"'] });
+    SPOTS.fabrica = c;
     PAGES.push({ c, x: 3.8, y: 0.8, z: -5.2, note: 'Domingo: a fábrica parou e deu pra ouvir os passarinhos.' });
     // roda de hamster gigante
     const j = nearestSample(MAIN, -20, 166), wc = besideRoad(MAIN, j, -1, 4.5, 1.6);
@@ -282,15 +300,18 @@ export function addLandmarks() {
       for (const [la, lo, s] of [[-78, 226, 1.2], [-70, 246, 0.9], [-80, 250, 1.4]]) { const rc = placeAt(la, lo, rand() * 360); rock(rc, 0, 0, s); }
     });
     interact(c, 0, 1.0, 1.3, { name: 'FAROL', lines: ['O farol pisca sozinho, sem ninguém mandar.', 'É a única coisa no planeta que trabalha sem bater ponto.'] });
+    SPOTS.farol = c;
     PAGES.push({ c, x: -1.6, y: 0.8, z: 1.4, note: 'Domingo: fiquei sem sinal o dia inteiro. Melhor dia do ano.' });
   }
   // Parque Domingueiro
   district('PARQUE DOMINGUEIRO', 'aberto somente aos domingos', 12, 302, 12);
   {
     reserve(14, 300, 13);
+    SPOTS.lago = placeDir(dirOf(15, 300), headingVec(dirOf(15, 300), 0), { h: SEA });
     BUILDS.push(() => {
       const ent = placeAt(-1.8, 309.5, 200);
       signPost(ent, 0, 0, texSign('PARQUE\nDOMINGUEIRO', '#5a8f73', '#f4f4ef', { w: 256, h: 160 }), 1.3, 0.8);
+      bike(ent, 1.45, 0.35, -0.35, '#8cc48c');
       interact(ent, 0, 1.6, 0, { name: 'PLACA', lines: ['PARQUE DOMINGUEIRO — aberto somente aos domingos.', 'Por isso ele está sempre tão vazio.'] });
       const pg = placeAt(3, 288, 30); swing(pg, 0, 0); slide(pg, 3.2, 1.0); addCircleLocal(pg, 0, 0, 1.3); addCircleLocal(pg, 3.0, 1.0, 1.0);
       for (const [la, lo, hd] of [[8, 285, 20], [22, 314, 80], [19, 286, 160]]) { const pc = placeAt(la, lo, hd); picnic(pc, 0, 0); addCircle(pc.d, 0.9); }
@@ -313,6 +334,7 @@ export function addLandmarks() {
     const c = placeAt(-15, 79, 10);
     lot(c, 7.6, 6.4, { kind: 'field', collide: false, m: 2.4 });
     reserve(-15, 79, 6);
+    SPOTS.horta = c;
     BUILDS.push(() => {
       for (let r = 0; r < 3; r++) {
         K.box(c, 0, -0.8, -1.6 + r * 1.6, 5.6, 1.1, 0.9, '#8e6c4b', { id: 3, pat: 3 });
@@ -333,8 +355,9 @@ export function addLandmarks() {
     reserve(50.5, 352, 3);
     BUILDS.push(() => {
       bench(c, 0, 0.6, Math.PI);
-      K.cyl(c, 1.6, 0, 0, 0.05, 1.1, '#4b5658', { n: 6 });
-      K.cyl(c, 1.6, 1.25, 0.1, 0.09, 0.7, '#4f86b8', { rx: -1.2, center: true, n: 10, id: 5 });
+      const lc = drop(c, 1.6, 0);
+      K.cyl(lc, 1.6, -0.5, 0, 0.05, 1.6, '#4b5658', { n: 6 });
+      K.cyl(lc, 1.6, 1.25, 0.1, 0.09, 0.7, '#4f86b8', { rx: -1.2, center: true, n: 10, id: 5 });
       addCircleLocal(c, 1.6, 0, 0.35);
     });
     interact(c, 1.6, 1.2, 0.2, { name: 'LUNETA', lines: ['Pela luneta você vê... o outro lado do planeta.', 'Tem uma pessoa lá, olhando por outra luneta. Ela acena. Ela também está cansada.'] });

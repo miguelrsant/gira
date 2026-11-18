@@ -6,7 +6,7 @@ import { scene } from '../core/renderer.js';
 import { MAT } from './chunks.js';
 import { SM } from './furniture.js';
 import { Geo, GEO, HULL, TM } from './geo.js';
-import { addRailing, ctxPoint, G, K, placeDir } from './kit.js';
+import { addRailing, ctxPoint, drop, G, K, placeDir } from './kit.js';
 import { DYN, solid } from './places.js';
 import { PLATFORMS, waterMat } from './terrain.js';
 import { texDoor, texSign } from './textures.js';
@@ -48,11 +48,12 @@ export function loungeChair(c) {
   K.box(c, 0, 0.22, 0.3, 0.7, 0.08, 1.2, '#f4f4ef', { id: 3 });
   K.boxc(c, 0, 0.3 + Math.sin(0.9) * 0.4, -0.3 - Math.cos(0.9) * 0.4, 0.7, 0.08, 0.8, '#f4f4ef', { id: 3, rx: 0.9 });
   K.boxc(c, 0, 0.36 + Math.sin(0.9) * 0.38, -0.27 - Math.cos(0.9) * 0.38, 0.62, 0.05, 0.74, '#66bde6', { id: 7, rx: 0.9 });
-  for (const [x, z] of [[-0.3, 0.8], [0.3, 0.8], [-0.3, -0.2], [0.3, -0.2]]) K.box(c, x, 0, z, 0.05, 0.24, 0.05, '#c9cdc2', SM);
+  for (const [x, z] of [[-0.3, 0.8], [0.3, 0.8], [-0.3, -0.2], [0.3, -0.2]]) K.box(c, x, -0.25, z, 0.05, 0.49, 0.05, '#c9cdc2', SM);
   K.box(c, 0, 0.3, 0.3, 0.62, 0.05, 1.1, '#66bde6', { id: 7 });
 }
 export function lighthouse(c) {
   const segs = 6;
+  K.cyl(c, 0, -1.6, 0, 1.24, 1.25, '#9aa19a', { n: 14, id: 5 });
   for (let i = 0; i < segs; i++) K.cyl(c, 0, -0.4 + i * 1.2, 0, 1.15 - i * 0.07, 1.22, i % 2 ? '#f4f4ef' : '#c25959', { n: 14, top: (1.15 - (i + 1) * 0.07) / (1.15 - i * 0.07), id: 4 });
   K.cyl(c, 0, 6.8, 0, 0.95, 0.15, '#4b5658', { n: 14 });
   K.cyl(c, 0, 6.95, 0, 0.6, 0.9, '#f6e7b5', { n: 10, id: 6 });
@@ -71,7 +72,9 @@ export function hammock(c1, c2) {
   K.boxc(hc, 0, 0.35, -len * 0.4, 0.05, 0.05, len * 0.25, '#e9e6dc', { rx: 0.9 });
 }
 export function scarecrow(c, x, z) {
-  K.cyl(c, x, 0, z, 0.05, 1.8, '#8e6c4b', { n: 5 });
+  c = drop(c, x, z);
+  solid(c, x, z, 0.22);
+  K.cyl(c, x, -0.35, z, 0.05, 2.15, '#8e6c4b', { n: 5 });
   K.boxc(c, x, 1.35, z, 1.2, 0.06, 0.06, '#8e6c4b');
   K.box(c, x, 0.9, z, 0.5, 0.6, 0.25, '#4f86b8', { id: 7 });
   K.sph(c, x, 1.75, z, 0.2, 0.22, 0.2, '#e9d7a0', { id: 7 });
@@ -83,13 +86,13 @@ export function wheelFrame(c) {
   for (const sx of [-1, 1]) {
     K.boxc(c, sx * 1.55, 1.9, -0.9, 0.18, 4.2, 0.18, '#c25959', { rx: 0.42 });
     K.boxc(c, sx * 1.55, 1.9, 0.9, 0.18, 4.2, 0.18, '#c25959', { rx: -0.42 });
-    K.box(c, sx * 1.55, -0.2, 0, 0.3, 0.3, 3.6, '#a94e4e');
+    K.box(c, sx * 1.55, -0.9, 0, 0.3, 1.0, 3.6, '#a94e4e');
   }
   K.cyl(c, 0, 3.8, 0, 0.16, 3.5, '#4b5658', { rz: Math.PI / 2, center: true, n: 10 });
   K.board(c, 2.9, 1.25, 1.9, 1.3, 0.55, texSign('RODA Nº 1', '#f4f4ef', '#c25959', { font: 'lbl', w: 256, h: 112 }), {});
-  K.cyl(c, 2.9, 0, 1.85, 0.04, 1.0, '#4b5658', { n: 5 });
+  K.cyl(c, 2.9, -0.6, 1.85, 0.04, 1.6, '#4b5658', { n: 5 });
   K.board(c, -2.6, 3.0, 1.6, 1.6, 0.6, texSign('VOLTAS HOJE\n12.384', '#2f3a40', '#f3c258', { font: 'lbl', w: 256, h: 112 }), {});
-  K.cyl(c, -2.6, 0, 1.55, 0.05, 2.7, '#4b5658', { n: 5 });
+  K.cyl(c, -2.6, -0.6, 1.55, 0.05, 3.3, '#4b5658', { n: 5 });
 }
 export function rowboat(c) {
   const g = new Geo();

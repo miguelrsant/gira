@@ -30,7 +30,7 @@ export const NPCS = [
       declined: D(['Tudo bem. Ninguém para sozinho.', 'Semana que vem eu pergunto de novo.']),
       sunday: D(['Viu? Não caiu nada.', 'Ele gira sozinho. Sempre girou.', 'O que parou foi o medo.'])
     } },
-  { id: 'rafa', name: 'RAFA FOCO', tag: '#f3c258', voice: 180, cast: 'rafa', at: { spot: 'academia', x: -1.3, z: 3.15, y: 0.5 },
+  { id: 'rafa', name: 'RAFA FOCO', tag: '#f3c258', voice: 180, cast: 'rafa', at: { spot: 'academia', x: -1.3, z: 2.85, y: 0.5 },
     bubble: { 1: 'Cansada? Ótimo!', 2: 'Banho gelado e propósito!', 3: 'Mindset 7x0!', 4: 'Mesma volta, mais propósito.', 5: 'Dor é fraqueza saindo!', 6: 'Domingo é dia de planejar a segunda!', 7: 'Viu? Folga nunca existiu.', strike: '...posso sentar também?', sunday: 'Não tira foto, tá?' },
     lines: {
       1: D(['E aí, guerreira! Tô ao vivo, dá um oi!', 'Se você não está cansada, não está andando direito!', 'Dormir é pra quem já chegou lá.']),
@@ -95,9 +95,14 @@ export const NPCS = [
     bubble: { 1: 'Olha o jornal!', 2: 'Manchete quentinha!', 3: 'Notícia boa? Tem não.', 4: 'Leva dois, paga dois.', 5: 'Extra! Extra! (mentira)', 6: 'Amanhã tem caderno de domingo!', 7: 'Caderno de domingo cancelado.', strike: 'Essa vai pra capa!', sunday: 'EDIÇÃO EXTRA!' },
     lines: {
       1: D(['Bom dia, Duda! Jornal fresquinho.', 'Eu leio tudo antes de vender. É o único jeito de ler.']),
+      2: D(['Hoje o horóscopo veio igual pra todos os signos:', '"Caminhe sem olhar pros lados e agradeça pela oportunidade."']),
       3: D(['Trinta anos de banca. Já vendi tudo quanto é notícia.', 'Nunca vendi uma que dissesse "hoje ninguém precisa andar".']),
+      4: D(['O Seu Valdir comprou todos os exemplares com a foto dele.', 'Deu três jornais ao todo.']),
+      5: D(['Sexta-feira é dia de caderno de viagem!', 'Tem foto da Praia do Intervalo. Fica a vinte passos daqui e ninguém tem tempo de ir.']),
       6: D(['Amanhã tem caderno de domingo!', 'Diz que vem com palavras cruzadas e um dia inteiro de folga. Se vier.']),
-      sunday: D(['Olha que coisa linda: eu sentada lendo a minha própria banca.'])
+      7: D(['Recolheram o caderno de domingo na madrugada.', 'Mas eu escondi as palavras cruzadas debaixo do balcão.']),
+      strike: D(['Segura as prensas! "POVO PARA E PLANETA NÃO CAI!"', 'Essa eu vou imprimir em letra garrafal!']),
+      sunday: D(['Olha que coisa linda: eu sentada lendo a minha própria banca.', 'E fiz sete horizontais sem pressa nenhuma!'])
     } },
   { id: 'marcos', name: 'MARCOS', tag: '#de794e', voice: 130, cast: 'marcos', at: { spot: 'wheel', y: 0.62, ry: 0 }, wheel: true,
     bubble: { 1: 'Roda nº 1, operador nº 1.', 2: 'Se eu paro, a roda para.', 3: 'A vista é sempre a mesma.', 4: 'Meu filho me desenhou de hamster.', 5: 'Hora extra é a mesma volta, mais escura.', 6: 'Amanhã? Depende da escala.', 7: 'Remanejaram, né?', strike: 'Desci da roda!', sunday: 'Ela gira sem mim!' },
@@ -126,11 +131,25 @@ export const NPCS = [
       sunday: D(['MORDEU! Olha o tamanho!', '...é uma bota. Mas é uma bota de domingo. Vale.'])
     } },
   { id: 'mingau', name: 'MINGAU', tag: '#7d8a88', voice: 420, pet: 'cat', at: { spot: 'mingau', x: 0.5, y: 0.85, ry: 1.2 },
-    bubble: { 1: 'Zzz.', strike: 'Zzz.', sunday: 'Zzz.' },
-    lines: { 1: D(['Zzz.', '(O Mingau nunca deu uma volta na vida e está ótimo.)']), sunday: D(['Zzz.', '(O Mingau já sabia.)']) } },
+    bubble: { 1: 'Zzz.', 3: 'Miau...', 5: 'Prrr.', 7: 'Mrr?', strike: 'Prrr!', sunday: 'Zzz ♥' },
+    lines: {
+      1: D(['Zzz.', '(O Mingau nunca deu uma volta na vida e está ótimo.)']),
+      3: D(['Miau.', '(Ele abriu um olho só, viu que ainda é quarta e fechou de novo.)']),
+      5: D(['Prrr...', '(O Mingau está fazendo hora extra de soneca no telhado morno.)']),
+      7: D(['Mrr?', '(Até o Mingau estranhou o barulho de gente andando em pleno domingo.)']),
+      strike: D(['Prrr!', '(Ele espreguiçou as quatro patas em solidariedade.)']),
+      sunday: D(['Zzz.', '(O Mingau já sabia desde o começo.)'])
+    } },
   { id: 'caramelo', name: 'CARAMELO', tag: '#d7a15a', voice: 380, pet: 'dog', at: { spot: 'loja199', x: 0, z: 3.3 }, roam: true,
-    bubble: { 1: 'Au!', sunday: 'Au au!' },
-    lines: { 1: D(['Au!', '(O Caramelo não bate ponto. Ele é de todo mundo e de ninguém.)']), sunday: D(['Au au!', '(Até o Caramelo acha que o domingo é melhor com todo mundo junto.)']) } },
+    bubble: { 1: 'Au!', 2: 'Au au!', 4: 'Snif snif.', 6: 'Au!', strike: 'Au ♥', sunday: 'Au au!' },
+    lines: {
+      1: D(['Au!', '(O Caramelo não bate ponto. Ele é de todo mundo e de ninguém.)']),
+      3: D(['Au!', '(Ele trouxe um graveto imaginário e abanou o rabo inteiro.)']),
+      5: D(['Snif, snif.', '(Ele cheirou seu tênis e aprovou a quilometragem.)']),
+      7: D(['Cain?', '(Ele sentou no meio da calçada como quem pergunta pra onde vai todo mundo.)']),
+      strike: D(['Au! Au!', '(Finalmente todo mundo parou pra fazer carinho!)']),
+      sunday: D(['Au au!', '(Até o Caramelo acha que o domingo é melhor com todo mundo junto.)'])
+    } },
   // ---- gente andando na avenida ----
   { id: 'cida', name: 'DONA CIDA', tag: '#8a6fa8', voice: 200, cast: 'cida', walker: { s0: 0.12, speed: 1.6, lane: -0.95 },
     bubble: { 1: 'Trinta anos de volta.', 2: 'Meu joelho estala no ritmo.', 3: 'Nunca vi o outro lado.', 4: 'Bom dia? Boa tarde?', 5: 'Sexta igual quinta.', 6: 'Amanhã durmo até 7h15!', 7: 'Remanejada...', strike: 'Ai, minhas pernas.', sunday: 'Sentar é bom.' },
@@ -142,6 +161,7 @@ export const NPCS = [
       5: D(['Sexta. Igual quinta, só que com outro nome.']),
       6: D(['Amanhã vou dormir até as sete e quinze!']),
       7: D(['Folga remanejada... é assim que chamam agora?']),
+      strike: D(['Ai, minhas pernas.', 'Trinta anos esperando alguém dizer "para".']),
       sunday: D(['Sentar.', 'Eu tinha esquecido como é bom sentar.'])
     } },
   { id: 'kaua', name: 'KAUÃ', tag: '#c25959', voice: 170, cast: 'kaua', walker: { s0: 0.45, speed: 6.2, lane: 0.95 },
@@ -154,18 +174,74 @@ export const NPCS = [
       5: D(['Postei: gratidão por mais uma semana girando.', 'Três curtidas. Uma era do Seu Valdir.']),
       6: D(['Sábado é o dia que eu corro pra mim.', 'Igual aos outros. Mas pra mim.']),
       7: D(['Folga cancelada? Tranquilo. Eu nem ia usar.']),
+      strike: D(['Coloquei o celular no modo avião.', 'O mundo não acabou!']),
       sunday: D(['Desliguei o app.', 'Ele perguntou se eu estava bem. Primeira vez que alguém pergunta.'])
     } },
-  { id: 'beto', name: 'BETO', tag: '#de794e', voice: 150, cast: 'beto', walker: { s0: 0.27, speed: 2.6, lane: 0.95 }, bubble: WALKER_BUBBLES,
-    lines: { 1: D(['Não posso parar. Se eu parar, sento. Se eu sentar, durmo.']), 3: D(['Tô na volta quatro mil e alguma coisa. Perdi a conta na três mil.']), 6: D(['Amanhã eu durmo. Se deixarem.']), 7: D(['De novo?']), sunday: D(['Que silêncio bom.']) } },
-  { id: 'luana', name: 'LUANA', tag: '#de794e', voice: 260, cast: 'luana', walker: { s0: 0.6, speed: 2.9, lane: -0.95 }, bubble: WALKER_BUBBLES,
-    lines: { 1: D(['Desculpa a máscara. É que eu respiro muito rápido quando ando.']), 4: D(['Eu tinha um hobby. Acho que era pintar. Ou era dormir.']), 7: D(['Eu já sabia. Mas dói igual.']), sunday: D(['Vou pintar alguma coisa. Ou dormir. Os dois!']) } },
-  { id: 'daiane', name: 'DAIANE', tag: '#de794e', voice: 280, cast: 'daiane', walker: { s0: 0.75, speed: 3.3, lane: 0.95 }, bubble: WALKER_BUBBLES,
-    lines: { 1: D(['Bom dia! Ou boa noite?', 'Desde que o sol só anda quando a gente anda, eu me perdi.']), 5: D(['Minha mãe me liga e eu tô sempre andando. Ela acha que eu sou atleta.']), sunday: D(['Liguei pra minha mãe sentada. Ela chorou.']) } },
-  { id: 'ronaldo', name: 'RONALDO', tag: '#de794e', voice: 140, cast: 'ronaldo', walker: { s0: 0.88, speed: 2.3, lane: -0.95 }, bubble: WALKER_BUBBLES,
-    lines: { 1: D(['Eu era músico. Agora eu sou ritmo: um, dois, um, dois.']), 4: D(['Compus uma música pro Seu Valdir. Chama "Mais uma volta".', 'É um acorde só. Repetido.']), sunday: D(['Tocar sentado. Que luxo.']) } },
-  { id: 'tati', name: 'TATI', tag: '#de794e', voice: 250, cast: 'tati', walker: { s0: 0.36, speed: 2.0, lane: -0.95 }, bubble: WALKER_BUBBLES,
-    lines: { 1: D(['Meu crachá diz "colaboradora". Meu joelho diz outra coisa.']), 3: D(['Hoje sonhei que eu parava. Acordei cansada do susto.']), sunday: D(['Sentei e o planeta não caiu. Quem diria.']) } },
+  { id: 'beto', name: 'BETO', tag: '#de794e', voice: 150, cast: 'beto', walker: { s0: 0.27, speed: 2.6, lane: 0.95 },
+    bubble: { 1: 'Se eu parar, durmo.', 2: 'Café nº 4.', 3: 'Volta quatro mil...', 4: 'Andando de olho fechado.', 5: 'Sexta ainda?', 6: 'Viu a Daiane hoje?', 7: 'De novo?!', strike: 'Encostei num muro!', sunday: 'Que silêncio bom.' },
+    lines: {
+      1: D(['Não posso parar. Se eu parar, sento. Se eu sentar, durmo.']),
+      2: D(['Aprendi a tomar café andando.', 'Metade vai na camisa, metade mantém o coração batendo.']),
+      3: D(['Tô na volta quatro mil e alguma coisa. Perdi a conta na três mil.']),
+      4: D(['Ontem sonhei que tava na avenida.', 'Acordei e economizei o caminho pro trabalho.']),
+      5: D(['O cheiro de pão da Nara é a única curva boa dessa rua.']),
+      6: D(['Amanhã eu durmo. Se deixarem.']),
+      7: D(['De novo? Nem deu tempo de lavar o uniforme!']),
+      strike: D(['Encostei as costas na parede e quase dormi em pé.', 'Que paz.']),
+      sunday: D(['Que silêncio bom.', 'Dá até pra ouvir os patos lá na lagoa.'])
+    } },
+  { id: 'luana', name: 'LUANA', tag: '#de794e', voice: 260, cast: 'luana', walker: { s0: 0.6, speed: 2.9, lane: -0.95 },
+    bubble: { 1: 'Respira, um, dois...', 2: 'Que cor era o mar?', 3: 'Olha aquela nuvem!', 4: 'Eu pintava antes...', 5: 'Cadê meu caderno?', 6: 'Vou guardar tinta pra amanhã.', 7: 'Dói igual.', strike: 'Olha a luz no céu!', sunday: 'Vou pintar o dia todo!' },
+    lines: {
+      1: D(['Desculpa a máscara. É que eu respiro muito rápido quando ando.']),
+      2: D(['Tentei reparar nas flores da janela hoje.', 'Quando a gente corre, tudo vira um borrão verde só.']),
+      3: D(['Aquela nuvem parece um sofá gigante.', 'Ou eu que tô precisando muito de um sofá.']),
+      4: D(['Eu tinha um hobby. Acho que era pintar. Ou era dormir.']),
+      5: D(['Minhas aquarelas secaram na mochila.', 'Mas com um pingo d’água elas voltam. Será que a gente também?']),
+      6: D(['Separei um papel limpo pra amanhã.', 'Quero pintar a praça sem ninguém correndo.']),
+      7: D(['Eu já sabia. Mas dói igual.']),
+      strike: D(['Olha a cor do céu quando ninguém te apressa!', 'É turquesa de verdade!']),
+      sunday: D(['Vou pintar alguma coisa. Ou dormir. Os dois!'])
+    } },
+  { id: 'daiane', name: 'DAIANE', tag: '#de794e', voice: 280, cast: 'daiane', walker: { s0: 0.75, speed: 3.3, lane: 0.95 },
+    bubble: { 1: 'Bom dia ou boa noite?', 2: 'Alô, mãe? Tô andando!', 3: 'Esqueci o guarda-chuva.', 4: 'Passo firme!', 5: 'Minha mãe acha que sou atleta.', 6: 'Amanhã ligo sentada!', 7: 'Mãe, cancelaram...', strike: 'Mãe, paramos tudo!', sunday: 'Liguei sentada!' },
+    lines: {
+      1: D(['Bom dia! Ou boa noite?', 'Desde que o sol só anda quando a gente anda, eu me perdi.']),
+      2: D(['Comprei uma palmilha macia na Loja 1,99.', 'Durou meia volta, mas foi a melhor meia volta do mês.']),
+      3: D(['A gente cruza com as mesmas pessoas todo dia e só dá tempo de um "opa".']),
+      4: D(['Às vezes eu diminuo o passo perto da escola só pra ouvir as crianças rindo.']),
+      5: D(['Minha mãe me liga e eu tô sempre andando. Ela acha que eu sou atleta.']),
+      6: D(['Prometi pra minha mãe que amanhã faço bolo de fubá.', 'Bolo precisa esperar crescer. Igual gente.']),
+      7: D(['Como é que eu explico lá em casa que o domingo mudou de endereço?']),
+      strike: D(['Mandei áudio pra minha mãe: "Mãe, o planeta gira sozinho!"']),
+      sunday: D(['Liguei pra minha mãe sentada. Ela chorou.'])
+    } },
+  { id: 'ronaldo', name: 'RONALDO', tag: '#de794e', voice: 140, cast: 'ronaldo', walker: { s0: 0.88, speed: 2.3, lane: -0.95 },
+    bubble: { 1: 'Um, dois, um, dois...', 2: 'Saudade de um samba.', 3: 'Tudo em marcha.', 4: 'Música de um acorde só.', 5: 'Ouvindo o vento.', 6: 'Afinando o violão.', 7: 'Sem pausa na pauta.', strike: 'Silêncio é música!', sunday: 'Bossa no parque!' },
+    lines: {
+      1: D(['Eu era músico. Agora eu sou ritmo: um, dois, um, dois.']),
+      2: D(['Sabia que na música a pausa vale tanto quanto a nota?', 'Sem pausa não é canção, é buzina.']),
+      3: D(['O tique-taque do relógio da fábrica é em quatro por quatro.', 'Eu tento andar em samba pra confundir o Seu Valdir.']),
+      4: D(['Compus uma música pro Seu Valdir. Chama "Mais uma volta".', 'É um acorde só. Repetido.']),
+      5: D(['Quando passo perto da praia, dá pra ouvir o contrabaixo das ondas.']),
+      6: D(['Troquei as cordas do violão ontem à noite.', 'Amanhã tem roda de som na praça, se Deus quiser.']),
+      7: D(['Cortaram o compasso de espera.', 'Ninguém aguenta tocar sem respirar, Duda.']),
+      strike: D(['Escuta isso...', 'O barulho de ninguém marchando. É o melhor acorde do ano.']),
+      sunday: D(['Tocar sentado. Que luxo.'])
+    } },
+  { id: 'tati', name: 'TATI', tag: '#de794e', voice: 250, cast: 'tati', walker: { s0: 0.36, speed: 2.0, lane: -0.95 },
+    bubble: { 1: 'Crachá diz colaboradora.', 2: 'Sorria, você está girando!', 3: 'Sonhei que parava.', 4: 'Meta batida (em mim).', 5: 'Cadê o banco?', 6: 'Contando os minutos.', 7: 'Sério mesmo?', strike: 'Tirei o crachá!', sunday: 'O planeta não caiu!' },
+    lines: {
+      1: D(['Meu crachá diz "colaboradora". Meu joelho diz outra coisa.']),
+      2: D(['Colocaram um cartaz no vestiário: "Sorria, você faz o mundo girar!"', 'Alguém desenhou olheiras no sol do cartaz.']),
+      3: D(['Hoje sonhei que eu parava. Acordei cansada do susto.']),
+      4: D(['A única ginástica laboral aqui é desviar do Kauã correndo.']),
+      5: D(['Contei todos os bancos da cidade andando.', 'São lindos. Parecem até de sentar.']),
+      6: D(['Já deixei a rede armada na varanda pra amanhã.']),
+      7: D(['Remanejaram o domingo pra quando? Pra 2040?']),
+      strike: D(['Guardei o crachá no bolso!', 'E olha só: continuo sendo eu!']),
+      sunday: D(['Sentei e o planeta não caiu. Quem diria.'])
+    } },
 ];
 export const INTRO_LINES = ['Acordei atrasada de novo...', 'Aqui o planeta só gira se a gente *andar*. Uma volta por dia, seis dias por semana.', 'No sétimo dia, dizem que tem *folga*. Bora.'];
 export const VALDIR_SPEECH = ['Atenção, família GIRA!', 'A folga de domingo foi... *remanejada*.', 'Demanda alta. Vocês entendem. O planeta *não pode parar*!'];

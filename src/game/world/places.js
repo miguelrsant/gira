@@ -15,6 +15,7 @@ export const SPOTS = {};         // posições nomeadas (NPCs, câmera, etc.)
 export const DISTRICTS = [];
 export const WIRES = [];         // pares de pontos para os fios
 export const DYN = {};           // objetos animados
+export const BENCHES = [];       // bancos disponíveis para sentar e descansar
 
 export function reserve(lat, lon, r) { RESERVED.push({ d: dirOf(lat, lon), r }); }
 export function isReserved(d, pad = 0) { for (const z of RESERVED) if (arcDist(d, z.d) < z.r + pad) return true; return false; }

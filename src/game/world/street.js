@@ -3,31 +3,59 @@ import * as THREE from 'three';
 import { lineMat } from '../core/materials.js';
 import { arcDist, pickR, rand } from '../core/math.js';
 import { scene } from '../core/renderer.js';
-import { bollard, cone, hydrant, lampPost, signPost, trashBin, utilPole, vending } from './furniture.js';
-import { MAIN } from './layout.js';
-import { addCircle, COLLIDERS, interact, onSidewalk, WIRES } from './places.js';
+import { shouldConnectWire } from '../rules.js';
+import { bollard, cone, guardRail, hydrant, lampPost, signPost, trashBin, utilPole, vending } from './furniture.js';
+import { LADEIRA, MAIN } from './layout.js';
+import { addCircle, COLLIDERS, DYN, interact, onSidewalk, WIRES } from './places.js';
 import { ROADS } from './roads.js';
 import { cornerAt } from './terrain.js';
-import { texSign } from './textures.js';
+import { texPlate, texSign } from './textures.js';
 
 export function streetFurniture() {
   for (const rd of ROADS) {
     if (rd.kind !== 'asphalt' || !rd.sw) continue;
     const S = rd.S, N = S.length, every = Math.max(10, Math.round(9 / rd.step));
-    let prev = null;
+    let first = null, prev = null;
     for (let i = 3; i < N - (rd.closed ? 0 : 3); i += every) {
       const s = S[i]; if (s.inter || s.cutR) { prev = null; continue; }
       const c = onSidewalk(rd, i, 1, 0.3);
       if (isNearAny(c.d, 0.9) || cornerAt(c.d, 0.6)) { prev = null; continue; }
       const pts = utilPole(c, 0, 0);
       addCircle(c.d, 0.25);
-      if (prev) for (let k = 0; k < 4; k++) WIRES.push([prev[k], pts[k]]);
+      if (!first) first = pts;
+      if (prev && shouldConnectWire(prev[0], pts[0], 13.5)) {
+        for (let k = 0; k < 4; k++) WIRES.push([prev[k], pts[k]]);
+      }
       prev = pts;
       // do outro lado: luminária
-      const c2 = onSidewalk(rd, i + Math.floor(every / 2), -1, 0.3);
-      if (!S[(i + Math.floor(every / 2)) % N].cutL && !isNearAny(c2.d, 0.9) && !cornerAt(c2.d, 0.6)) { lampPost(c2, 0, 0); addCircle(c2.d, 0.2); }
+      const j = (i + Math.floor(every / 2)) % N;
+      const c2 = onSidewalk(rd, j, -1, 0.3);
+      if (!S[j].cutL && !isNearAny(c2.d, 0.9) && !cornerAt(c2.d, 0.6)) { lampPost(c2, 0, 0); addCircle(c2.d, 0.2); }
     }
-    if (rd.closed && prev) { /* fecha o anel só se o primeiro poste existir */ }
+    if (rd.closed && prev && first && prev !== first && shouldConnectWire(prev[0], first[0], 13.5)) {
+      for (let k = 0; k < 4; k++) WIRES.push([prev[k], first[k]]);
+    }
+    // placa com o nome da rua na entrada das vias secundárias
+    if (!rd.closed && rd.name) {
+      for (let i = 4; i < Math.min(N - 4, 16); i++) {
+        if (S[i].inter || S[i].cutL) continue;
+        const sc = onSidewalk(rd, i, -1, 0.28);
+        if (!isNearAny(sc.d, 0.8) && !cornerAt(sc.d, 0.9)) {
+          signPost(sc, 0, 0, texPlate(rd.name.toUpperCase()), 1.08, 0.28);
+          break;
+        }
+      }
+    }
+    // defensas metálicas nas curvas abertas da Ladeira
+    if (rd === LADEIRA) {
+      for (const frac of [0.34, 0.68]) {
+        const i = Math.floor(N * frac);
+        if (S[i] && !S[i].inter && !S[i].cutL) {
+          const gc = onSidewalk(rd, i, -1, 0.16);
+          if (!isNearAny(gc.d, 1.2) && !cornerAt(gc.d, 1.0)) guardRail(gc, -1.2, 1.2, 0);
+        }
+      }
+    }
     // lixeiras, hidrantes, cones, placas "proibido parar"
     for (let i = 7; i < N - 3; i += Math.round(every * 1.7)) {
       const side = (i % 2) ? 1 : -1, s = S[i];
@@ -55,7 +83,7 @@ export function buildWires() {
     for (let k = 0; k < n; k++) {
       const t0 = k / n, t1 = (k + 1) / n;
       const p0 = a.clone().lerp(b, t0), p1 = a.clone().lerp(b, t1);
-      const sag = (t) => Math.sin(Math.PI * t) * 0.45;
+      const sag = (t) => Math.sin(Math.PI * t) * 0.42;
       p0.setLength(p0.length() - sag(t0)); p1.setLength(p1.length() - sag(t1));
       pos.push(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z);
     }
@@ -63,4 +91,5 @@ export function buildWires() {
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   const l = new THREE.LineSegments(g, lineMat('#3b4447')); l.frustumCulled = false;
   scene.add(l);
+  DYN.wires = l;
 }

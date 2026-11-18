@@ -6,6 +6,7 @@ import { clamp } from '../core/math.js';
 import { scene } from '../core/renderer.js';
 import { ATL } from './atlas.js';
 import { Geo } from './geo.js';
+import { DYN } from './places.js';
 
 const NCH = 60;
 export const CH = [];
@@ -67,4 +68,5 @@ export function updateChunks(camPos, far) {
     }
     for (const im of ch.inst) im.visible = vis && !far && near < 30;
   }
+  if (DYN.wires) DYN.wires.visible = !far;
 }

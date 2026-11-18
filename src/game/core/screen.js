@@ -2,10 +2,10 @@
 // tamanho do canvas, densidade de pixels e ajuste automático de resolução
 import { LOW } from './config.js';
 import { post, rtColor } from './ink.js';
-import { camera, renderer } from './renderer.js';
+import { camera, isSoftwareGl, renderer } from './renderer.js';
 
-const PR_MAX = Math.min(devicePixelRatio || 1, LOW ? 1.3 : 1.75);
-const PR_MIN = LOW ? 0.6 : 0.8;
+const PR_MAX = isSoftwareGl ? 1 : Math.min(devicePixelRatio || 1, LOW ? 1.3 : 1.75);
+const PR_MIN = isSoftwareGl ? 0.75 : (LOW ? 0.6 : 0.8);
 let PR = PR_MAX;
 
 export const view = { w: innerWidth, h: innerHeight, portrait: innerWidth < innerHeight };

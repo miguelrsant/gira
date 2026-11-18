@@ -34,6 +34,15 @@ export const IconEmote = () => (
   </svg>
 );
 
+export const IconCamera = () => (
+  <svg viewBox="0 0 32 32" fill={C}>
+    <path d="M10.5 6.5L12.3 4h7.4l1.8 2.5H26a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-14a3 3 0 0 1 3-3h4.5z" />
+    <circle cx="16" cy="16.5" r="5.6" fill="#f4f4ef" />
+    <circle cx="16" cy="16.5" r="3.2" fill={C} />
+    <circle cx="24" cy="10.8" r="1.5" fill="#f3c258" />
+  </svg>
+);
+
 export const IconNext = () => (
   <svg viewBox="0 0 26 26">
     <path d="M7 3l14 10L7 23z" fill="#66bde6" stroke="#373f42" strokeWidth="2" strokeLinejoin="round" />

@@ -13,7 +13,7 @@ import { state } from './state.js';
 
 const _ov = { p: V3(), cd: V3() }, _sc = [0, 0];
 export function updateOverlays(dt) {
-  const playing = state.mode === 'play' || state.mode === 'cutscene';
+  const playing = (state.mode === 'play' || state.mode === 'cutscene') && !state.photoMode;
   camera.getWorldDirection(_ov.cd);
   const now = performance.now();
   for (const a of ACTORS) {
@@ -21,7 +21,7 @@ export function updateOverlays(dt) {
     let s = null;
     if (playing && a.vis && a.dist < 34) s = screenOf(headPos(a, _ov.p), _sc);
     const talkingNow = state.dialog && a.talking;
-    const showB = !!s && a.dist < 8 && !talkingNow && !state.dialog && state.mode === 'play';
+    const showB = !!s && a.dist < 8 && !talkingNow && !state.dialog && state.mode === 'play' && !state.photoMode;
     a.bubbleEl.classList.toggle('on', showB);
     a.bubbleEl.classList.toggle('click', showB && a.dist < 3.2);
     if (showB) {
@@ -32,10 +32,10 @@ export function updateOverlays(dt) {
     // marcador: "…" para quem ainda não falou hoje, "!" para quem tem missão (história: amarelo, sempre visível,
     // preso na borda; pedido: azul), e a Nara no 7º dia
     const q7 = n.id === 'nara' && state.day === 7 && !state.strike && !state.sunday && !state.talked.has('nara') && state.mode === 'play';
-    const qk = state.mode === 'play' ? (q7 ? 'main' : questOf(n.id)) : null;
+    const qk = state.mode === 'play' && !state.photoMode ? (q7 ? 'main' : questOf(n.id)) : null;
     const quest = qk === 'main', side = qk === 'side' || qk === 'offer';
     let ms = s;
-    if ((quest || qk === 'side') && !ms) ms = edgeOf(headPos(a, _ov.p), _sc);
+    if ((quest || qk === 'side') && !ms && playing) ms = edgeOf(headPos(a, _ov.p), _sc);
     const showM = !!ms && !showB && !talkingNow && (quest || qk === 'side' || ((side || !state.talked.has(n.id)) && a.dist < 26 && (!a.pet || side) && playing));
     a.markerEl.classList.toggle('on', showM);
     a.markerEl.classList.toggle('quest', quest);
@@ -51,11 +51,11 @@ export function updateOverlays(dt) {
   }
   // emoção da Duda
   if (meEmote.t > 0) meEmote.t -= dt;
-  const pe = meEmote.t > 0 && playing ? screenOf(_ov.p.copy(player.pos).addScaledVector(player.d, player.ch.st.pose === 'ground' ? 1.15 : 1.85), _sc) : null;
+  const pe = meEmote.t > 0 && playing ? screenOf(_ov.p.copy(player.pos).addScaledVector(player.d, player.ch.st.pose === 'ground' ? 1.15 : player.ch.st.pose === 'sit' ? 1.45 : 1.85), _sc) : null;
   meEmote.el.classList.toggle('on', !!pe);
   if (pe) { const k = Math.min(1, (2.2 - meEmote.t) * 6); meEmote.el.style.transform = `translate(${pe[0].toFixed(1)}px, ${pe[1].toFixed(1)}px) translate(-50%, -100%) scale(${k.toFixed(3)})`; }
   // coisas para achar e lugares para chegar (missões)
-  const G = state.mode === 'play' && !state.dialog ? goals() : [];
+  const G = state.mode === 'play' && !state.dialog && !state.photoMode ? goals() : [];
   for (let i = 0; i < GMARK.length; i++) {
     const g = G[i], el = GMARK[i];
     let gs = g ? screenOf(g.pos, _sc) : null;
@@ -68,7 +68,7 @@ export function updateOverlays(dt) {
   }
   // placas e objetos ainda não lidos por perto
   let k = 0;
-  if (state.mode === 'play' && !state.dialog) {
+  if (state.mode === 'play' && !state.dialog && !state.photoMode) {
     for (const it of INTERACT) {
       if (k >= IMARK.length) break;
       if (state.read.has(it)) continue;
@@ -80,7 +80,11 @@ export function updateOverlays(dt) {
   }
   for (; k < IMARK.length; k++) IMARK[k].classList.remove('on');
   // aviso de interação (o <Prompt> do React)
-  const t = state.mode === 'play' && !state.dialog ? target : null;
-  const text = t ? (t.kind === 'npc' ? (t.a.pet ? 'FAZER CARINHO EM ' : 'CONVERSAR COM ') : 'VER: ') + t.name : null;
+  const t = state.mode === 'play' && !state.dialog && !state.photoMode ? target : null;
+  const text = t
+    ? t.kind === 'bench'
+      ? (t.sitting ? 'LEVANTAR DO BANCO' : 'SENTAR NO BANCO')
+      : (t.kind === 'npc' ? (t.a.pet ? 'FAZER CARINHO EM ' : 'CONVERSAR COM ') : 'VER: ') + t.name
+    : null;
   if (getUI().prompt !== text) setUI({ prompt: text });
 }

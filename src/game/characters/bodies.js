@@ -8,7 +8,7 @@ import { decBox, decLogo, decNews, decPhone, decSign, STRIKE } from './decals.js
 import { FACE, faceSheet, FAW, FS, hexMix, redrawFace, slotUV } from './faces.js';
 import { HAIR, headGeos, HEADK, latheG, limbG, profR, rboxG, shellGeo, smoothPts, strapG, taperG, torsoDZ, torsoG, torsoProf } from './parts.js';
 
-const gradC = makeGrad([150, 255]);
+const gradC = makeGrad([124, 198, 255]);
 
 // ---------------- corpos ----------------
 // hipW/waistW: largura do quadril e da cintura; bust/butt: volume do peito e do bumbum (o torno não dá)

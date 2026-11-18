@@ -185,7 +185,23 @@ export function buildRoads() {
   for (const rd of ROADS) {
     if (rd.kind === 'trail') continue;
     const S = rd.S, N = S.length, segs = rd.closed ? N : N - 1;
-    const hw = rd.hw, sw = rd.sw, top = rd.top, lv = rd.level * 0.006;
+    const hw = rd.hw, sw = rd.sw, top = rd.top;
+    // faixas de pedestre antes dos cruzamentos e nos marcos principais da avenida
+    const cross = new Set();
+    if (rd.marks === 'dash' && hw >= 1.4) {
+      let lastC = -99;
+      for (let i = 1; i < segs - 2; i++) {
+        const enterInter = !S[i].inter && !S[i + 1].inter && S[(i + 2) % N].inter;
+        if (enterInter && i - lastC > 18) { cross.add(i); cross.add(i + 1); lastC = i; }
+      }
+      if (rd.closed) {
+        for (const [la, lo] of [[4, 2], [4.5, 21], [5, 45], [-20, 231], [-6, 310]]) {
+          const d0 = dirOf(la, lo); let bi = 0, bd = -2;
+          for (let i = 0; i < N; i++) { const v = S[i].d.dot(d0); if (v > bd) { bd = v; bi = i; } }
+          if (!S[bi].inter && !S[(bi + 1) % N].inter) { cross.add(bi); cross.add((bi + 1) % N); }
+        }
+      }
+    }
     let arc = 0;
     for (let i = 0; i < segs; i++) {
       const s0 = S[i], s1 = S[(i + 1) % N];
@@ -215,9 +231,17 @@ export function buildRoads() {
       }
       const c = rd.kind === 'stone' ? RC.stone : RC.asphalt;
       roadStrip(g, s0, s1, -hw, top, hw, top, c, 'up', { pat: rd.kind === 'stone' ? 2 : 0, id: 1, q: [[-hw, a0], [hw, a0], [hw, a1], [-hw, a1]] });
-      // marcações
-      if (rd.marks === 'dash' && !s0.inter && !s1.inter && (i % 4) < 2) roadStrip(g, s0, s1, -0.07, top + 0.004, 0.07, top + 0.004, RC.line, 'up', { id: 1 });
-      if (rd.marks === 'double' && !s0.inter && !s1.inter) { roadStrip(g, s0, s1, -0.16, top + 0.004, -0.06, top + 0.004, RC.yellow, 'up', { id: 1 }); roadStrip(g, s0, s1, 0.06, top + 0.004, 0.16, top + 0.004, RC.yellow, 'up', { id: 1 }); }
+      // marcações e faixas de pedestre
+      if (cross.has(i)) {
+        const span = hw - 0.28, nBars = Math.max(3, Math.floor((span * 2) / 0.52));
+        for (let b = 0; b < nBars; b++) {
+          const cx = -span + (b + 0.5) * ((span * 2) / nBars);
+          roadStrip(g, s0, s1, cx - 0.13, top + 0.006, cx + 0.13, top + 0.006, RC.line, 'up', { id: 1 });
+        }
+      } else {
+        if (rd.marks === 'dash' && !s0.inter && !s1.inter && (i % 4) < 2) roadStrip(g, s0, s1, -0.07, top + 0.004, 0.07, top + 0.004, RC.line, 'up', { id: 1 });
+        if (rd.marks === 'double' && !s0.inter && !s1.inter) { roadStrip(g, s0, s1, -0.16, top + 0.004, -0.06, top + 0.004, RC.yellow, 'up', { id: 1 }); roadStrip(g, s0, s1, 0.06, top + 0.004, 0.16, top + 0.004, RC.yellow, 'up', { id: 1 }); }
+      }
       if (sw > 0) {
         const ys = top + 0.13 + rd.level * 0.004;
         for (const side of [-1, 1]) {
@@ -443,7 +467,7 @@ export function buildCorners() {
       // asfalto no canto de dentro da curva
       // (o leque tinha o vértice repetido no lugar errado: normal zero, triângulo escuro com contorno no cruzamento)
       const f0 = at(i0p, yR(u0) - 0.035), f1 = at(i1p, yR(u1) - 0.035);
-      quadUp(g, f0, f1, qR, qR, RC.asphalt, up, { id: 1, n: [i0p, i1p, Qx, Qx] });
+      if (f0.distanceToSquared(f1) > 1e-6) quadUp(g, f0, f1, qR, qR, RC.asphalt, up, { id: 1, n: [i0p, i1p, Qx, Qx] });
       // meio-fio (para o lado do asfalto) e borda de fora
       const toQ = tmpV3.subVectors(Qi, i0p);
       const a0 = at(i0p, yR(u0) - 0.4), a1 = at(i1p, yR(u1) - 0.4), a2 = at(i1p, tops[u + 1]), a3 = at(i0p, tops[u]);

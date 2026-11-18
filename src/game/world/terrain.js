@@ -282,27 +282,47 @@ export function buildTerrain() {
 export const waterMat = new THREE.ShaderMaterial({
   fog: true,
   uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
-    cDeep: { value: col('#3e9fb2') }, cShallow: { value: col('#74cfc8') }, cFoam: { value: col('#f2f7f0') }, cRing: { value: col('#a7e6dc') }, time: { value: 0 }
+    cDeep: { value: col('#3897ac') }, cShallow: { value: col('#72d2ca') }, cFoam: { value: col('#f6faf3') }, cRing: { value: col('#aeece2') },
+    sunDir: { value: new THREE.Vector3(0.4, 0.8, 0.3).normalize() }, time: { value: 0 }
   }]),
   vertexShader: `
-    attribute float aDepth; varying float vD; varying vec3 vW;
+    attribute float aDepth; uniform float time; varying float vD; varying vec3 vW;
     #include <fog_pars_vertex>
-    void main(){ vD = aDepth; vW = (modelMatrix * vec4(position, 1.0)).xyz; vec4 mvPosition = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mvPosition;
-    #include <fog_vertex>
+    void main(){
+      vD = aDepth;
+      vec4 wp = modelMatrix * vec4(position, 1.0);
+      float swell = smoothstep(0.18, 0.95, aDepth) * (sin(wp.x * 1.15 + time * 1.65) * 0.022 + cos(wp.z * 1.3 - time * 1.35) * 0.018);
+      wp.xyz += normalize(wp.xyz) * swell;
+      vW = wp.xyz;
+      vec4 mvPosition = viewMatrix * wp;
+      gl_Position = projectionMatrix * mvPosition;
+      #include <fog_vertex>
     }`,
   fragmentShader: `
-    uniform vec3 cDeep, cShallow, cFoam, cRing; uniform float time; varying float vD; varying vec3 vW;
+    uniform vec3 cDeep, cShallow, cFoam, cRing, sunDir; uniform float time; varying float vD; varying vec3 vW;
     #include <fog_pars_fragment>
     ${GLSL_NOISE}
     void main(){
       float d = vD;
-      float wob = n3(vW * 0.9 + vec3(0.0, time * 0.15, 0.0)) * 0.3;
-      vec3 c = mix(cShallow, cDeep, smoothstep(0.1, 2.6, d + wob * 0.5));
-      float ring = step(0.8, fract((d + wob) * 1.5 - time * 0.2)) * (1.0 - smoothstep(0.25, 1.3, d));
+      float wob = n3(vW * 0.9 + vec3(0.0, time * 0.16, 0.0)) * 0.32;
+      vec3 c = mix(cShallow, cDeep, smoothstep(0.08, 2.7, d + wob * 0.5));
+      // malha de cáusticas ilustradas em águas rasas e médias
+      float ca1 = n3(vW * 1.85 + vec3(time * 0.22, -time * 0.14, time * 0.18));
+      float ca2 = n3(vW * 1.95 - vec3(time * 0.19, time * 0.21, -time * 0.15));
+      float caustic = smoothstep(0.16, 0.02, abs(ca1 - ca2)) * smoothstep(0.08, 0.45, d) * (1.0 - smoothstep(1.8, 3.4, d));
+      c = mix(c, cRing, caustic * 0.42);
+      // anéis de arrebentação na beira da praia
+      float ring = step(0.78, fract((d + wob) * 1.55 - time * 0.22)) * (1.0 - smoothstep(0.22, 1.35, d));
       c = mix(c, cRing, ring * 0.85);
-      c = mix(c, cFoam, 1.0 - smoothstep(0.03, 0.14 + wob * 0.25, d));
-      float sp = step(0.88, n3(vW * 2.6 + vec3(time * 0.35, 0.0, -time * 0.3))) * step(0.55, n3(vW * 0.6 - time * 0.04));
-      c = mix(c, cFoam, sp * 0.55 * smoothstep(0.4, 1.5, d));
+      // espuma dupla de beirada
+      c = mix(c, cFoam, 1.0 - smoothstep(0.025, 0.15 + wob * 0.26, d));
+      // brilhos solares cintilantes na superfície
+      vec3 nUp = normalize(vW);
+      vec3 vDir = normalize(cameraPosition - vW);
+      vec3 hVec = normalize(normalize(sunDir) + vDir);
+      float specEnv = pow(max(0.0, dot(nUp, hVec)), 14.0);
+      float sp = step(0.86 - specEnv * 0.18, n3(vW * 2.8 + vec3(time * 0.38, 0.0, -time * 0.32))) * step(0.52, n3(vW * 0.65 - time * 0.05));
+      c = mix(c, cFoam, sp * (0.55 + specEnv * 0.35) * smoothstep(0.32, 1.35, d));
       gl_FragColor = vec4(c, ${PACK ? '-1.0' : '1.0'});
       #include <fog_fragment>
     }`

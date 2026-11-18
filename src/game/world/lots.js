@@ -2,6 +2,7 @@
 import { SEA } from '../core/config.js';
 import { lonOf, pickR, rand, rr } from '../core/math.js';
 import { bHouse, bShop, bWarehouse } from './buildings.js';
+import { bike, clothesline } from './furniture.js';
 import { ctxDir, subCtx } from './kit.js';
 import { CONJ, LADEIRA, MAIN, VILA } from './layout.js';
 import { addBoxCollider, besideRoad, BUILDS, FOOT, footFree, footOf, isReserved } from './places.js';
@@ -40,10 +41,15 @@ function fillRoad(rd, o) {
         if (yard) addBoxCollider(subCtx(c, 0, 0, (d + yard) / 2 - 0.05), w + 0.8, 0.3);
         const seed = Math.floor(rand() * 1e9);
         BUILDS.push(() => {
-          if (type === 'house') bHouse(bc, { w, d, fl: rand() < 0.4 ? 2 : 1, yard, lotW: w + 0.8 });
-          else if (type === 'conj') bHouse(bc, { w, d, fl: 1, yard, lotW: w + 0.8, wall: '#e9d9b8', roof: '#b5654a', win: 'grille', doorX: -1.1, murC: '#d8d3c4', doorC: '#8a6a4f' });
-          else if (type === 'ware') bWarehouse(c, { w, d, h: rr(4, 5.5), wall: pickR(['#9fb3a9', '#b9b4a4', '#a9b7c0']) });
-          else bShop(c, { w, d, fl: Math.floor(rr(1, 3.6)), front: rand() < 0.45 ? 'glass' : 'shutter', goods: pickR(['market', 'cheap', 'food', 'pharma']), shutter: pickR([0, 0, 1, 3, 4]), awning: rand() < 0.4 ? pickR([['#c25959', '#f4f4ef'], ['#66bde6', '#f4f4ef'], ['#8cc48c', '#f4f4ef'], ['#f3c258', '#de794e']]) : null, balcony: rand() < 0.4, sign: rand() < 0.55 ? pickR(SHOPNAMES) : null, signBg: pickR(['#f3c258', '#66bde6', '#c25959', '#8cc48c', '#de794e', '#373f42']), posters: rand() < 0.35 ? [pickR(['domingo', 'gira', 'foco', 'greve', 'gato'])] : null });
+          if (type === 'house') {
+            bHouse(bc, { w, d, fl: rand() < 0.4 ? 2 : 1, yard, lotW: w + 0.8 });
+            if (rand() < 0.32) bike(c, -w * 0.26, (d + yard) / 2 - 0.55, rr(-0.25, 0.25));
+            else if (rand() < 0.28) clothesline(c, w * 0.22, (d + yard) / 2 - 0.65, 1.6, rr(-0.15, 0.15));
+          } else if (type === 'conj') {
+            bHouse(bc, { w, d, fl: 1, yard, lotW: w + 0.8, wall: '#e9d9b8', roof: '#b5654a', win: 'grille', doorX: -1.1, murC: '#d8d3c4', doorC: '#8a6a4f' });
+            if (rand() < 0.45) clothesline(c, w * 0.22, (d + yard) / 2 - 0.62, 1.55, 0.08);
+          } else if (type === 'ware') bWarehouse(c, { w, d, h: rr(4, 5.5), wall: pickR(['#9fb3a9', '#b9b4a4', '#a9b7c0']) });
+          else bShop(c, { w, d, fl: Math.floor(rr(1, 3.6)), front: rand() < 0.45 ? 'glass' : 'shutter', goods: pickR(['market', 'cheap', 'food', 'pharma']), shutter: pickR([0, 0, 1, 3, 4]), awning: rand() < 0.4 ? pickR([['#c25959', '#f4f4ef'], ['#66bde6', '#f4f4ef'], ['#8cc48c', '#f4f4ef'], ['#f3c258', '#de794e']]) : null, balcony: rand() < 0.4, sign: rand() < 0.55 ? pickR(SHOPNAMES) : null, signBg: pickR(['#f3c258', '#66bde6', '#c25959', '#8cc48c', '#de794e', '#373f42']), posters: rand() < 0.42 ? [pickR(['domingo', 'gira', 'foco', 'greve', 'gato', 'coral', 'pao'])] : null });
         });
         s += w + (o.gap ?? 0.8);
       } else s += 1.5;

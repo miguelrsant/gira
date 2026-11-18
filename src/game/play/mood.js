@@ -4,6 +4,7 @@
 import { setUI, getUI } from '../../store.js';
 import { LAP, WALK } from '../core/config.js';
 import { arcDist, clamp, rr } from '../core/math.js';
+import { computeMoodProfile } from '../rules.js';
 import { DISTRICTS } from '../world/places.js';
 import { DAY_MOOD, RESPIROS } from '../story/moods.js';
 import { actor } from './actors.js';
@@ -21,10 +22,12 @@ const gesture = (g) => { if (P.heroGesture) P.heroGesture(g); };
 function newDay() {
   M.key = state.week + ':' + state.day; M.used.clear(); M.lastW = state.walked; M.happyT = 0; M.prog = 0; M.at = null;
   state.animo = dayInfo().start;
+  state.restedT = 0;
 }
 function pickMood() {
   if (state.strike || state.sunday) return 'feliz';
   if (M.happyT > 0) return 'feliz';
+  if (state.restedT > 0) return 'tranquila';
   const base = dayInfo().mood, a = state.animo;
   if (a < 0.18) return 'exausta';
   if (a < 0.38 && base !== 'exausta') return 'cansada';
@@ -58,16 +61,27 @@ export function updateMood(dt) {
   if (state.mode !== 'play' && state.mode !== 'cutscene') return;
   if (M.key !== state.week + ':' + state.day) newDay();
   const info = dayInfo(), pl = P.player;
+  if (state.restedT > 0 && !state.sitting) state.restedT = Math.max(0, state.restedT - dt);
   // andar cansa (correr cansa mais); na terça o relógio anda de má vontade
   const dW = state.walked - M.lastW;
   if (dW > 0 && !state.sunday && !state.strike) {
     const run = pl.aspeed > WALK + 0.5 ? 1.6 : 1;
-    state.animo = clamp(state.animo - (dW / LAP) * 0.55 * info.drain * run, 0, 1);
+    const restMul = state.restedT > 0 ? 0.65 : 1;
+    state.animo = clamp(state.animo - (dW / LAP) * 0.55 * info.drain * run * restMul, 0, 1);
     if (info.slow) state.walked -= dW * info.slow;
   }
   M.lastW = state.walked;
   if (state.sunday || state.strike) state.animo = Math.min(1, state.animo + dt * 0.05);
   if (M.happyT > 0) M.happyT -= dt;
+  const prof = computeMoodProfile({
+    day: state.day,
+    animo: state.animo,
+    sunday: state.sunday,
+    strike: state.strike,
+    happyT: M.happyT,
+    restedT: state.restedT,
+  });
+  state.moodLabel = prof.label;
   const mood = pickMood();
   if (mood !== M.mood) { M.mood = state.mood = mood; if (P.setHeroMood) P.setHeroMood(mood); }
   if (state.mode !== 'play' || state.dialog) { publish(null); return; }

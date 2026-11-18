@@ -109,9 +109,17 @@ export const HOUSEW = ['#f0d3a8', '#e8b9a9', '#a9d1c4', '#f3e1b0', '#c9dcae', '#
 export const ROOFS = ['#c4734f', '#b5654a', '#8f9b96', '#a85d4a', '#c98a5e', '#6f8a8e'];
 export function addWindow(c, x, y, z, kind, o = {}) {
   const w = o.w || 0.82, h = o.h || 1.05, ry = o.ry || 0;
-  K.pl(c, x + Math.sin(ry) * 0.012, y + h / 2, z + Math.cos(ry) * 0.012, w, h, texWin(kind, o.frame), { ry, id: 6 });
+  if (!ry) K.box(c, x, y - 0.02, z + 0.008, w + 0.08, h + 0.05, 0.028, o.frame || '#eef0e8', { id: 5, layer: 'small' });
+  K.pl(c, x + Math.sin(ry) * 0.014, y + h / 2, z + Math.cos(ry) * 0.018, w, h, texWin(kind, o.frame), { ry, id: 6 });
   if (ry) return;
-  K.box(c, x, y - 0.09, z + 0.04, w + 0.18, 0.09, 0.16, o.sill || '#e9e6dc', { id: 5 });
+  K.box(c, x, y - 0.09, z + 0.045, w + 0.18, 0.09, 0.17, o.sill || '#e9e6dc', { id: 5 });
+  if (kind === 'plant') {
+    K.box(c, x, y - 0.01, z + 0.11, w * 0.82, 0.15, 0.15, '#c9744f', { id: 5, layer: 'small' });
+    for (const sx of [-0.2, 0, 0.2]) {
+      K.sph(c, x + sx * w, y + 0.17, z + 0.12, 0.13, 0.12, 0.11, '#6eb065', { id: 7, layer: 'fol', w: 7, h: 5 });
+      K.sph(c, x + sx * w + 0.03, y + 0.25, z + 0.14, 0.045, 0.045, 0.045, sx < 0 ? '#f3c258' : sx > 0 ? '#e76f6f' : '#f4f4ef', { id: 7, layer: 'fol', w: 6, h: 4 });
+    }
+  }
   if (o.shut) { K.box(c, x - w / 2 - 0.16, y - 0.02, z + 0.03, 0.26, h + 0.04, 0.05, o.shut, { id: 5, pat: 7 }); K.box(c, x + w / 2 + 0.16, y - 0.02, z + 0.03, 0.26, h + 0.04, 0.05, o.shut, { id: 5, pat: 7 }); }
   if (o.lintel) K.box(c, x, y + h + 0.02, z + 0.03, w + 0.14, 0.1, 0.08, o.sill || '#e9e6dc', { id: 5 });
 }

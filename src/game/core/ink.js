@@ -42,7 +42,7 @@ export const post = new THREE.ShaderMaterial({
       float dmin = min(min(dl, dr), min(du, dd));
       float lap = abs(dl + dr + du + dd - 4.0 * d0) / max(min(d0, dmin), 0.001);
       float eD = smoothstep(0.03, 0.085, lap);
-      float e = eD;
+      float eCrease = 0.0;
       if (pack > 0.5) {
         float id0, k0, idr, kr, idu, ku, idl, kl, idd, kd;
         vec3 n0 = decN(c0.a, id0, k0);
@@ -52,29 +52,33 @@ export const post = new THREE.ShaderMaterial({
         decN(texture2D(tColor, vUv - vec2(0.0, px.y)).a, idd, kd);
         // água encostando no chão não ganha traço: a espuma faz esse papel
         bool wat = k0 > 1.5 || (id0 < 0.5 && k0 > 0.5 && (kr > 1.5 || ku > 1.5 || kl > 1.5 || kd > 1.5));
-        if (wat) e = 0.0;
-        if (k0 > 0.5 && k0 < 1.5) {
+        if (wat) eD = 0.0;
+        if (!wat && k0 > 0.5 && k0 < 1.5) {
           if (kr > 0.5 && kr < 1.5 && abs(dr - d0) < d0 * 0.05) {
-            e = max(e, smoothstep(0.22, 0.45, 1.0 - dot(n0, nr)));
-            if (abs(idr - id0) > 0.5) e = max(e, 0.95);
+            eCrease = max(eCrease, smoothstep(0.24, 0.48, 1.0 - dot(n0, nr)) * 0.78);
+            if (abs(idr - id0) > 0.5) eCrease = max(eCrease, 0.90);
           }
           if (ku > 0.5 && ku < 1.5 && abs(du - d0) < d0 * 0.05) {
-            e = max(e, smoothstep(0.22, 0.45, 1.0 - dot(n0, nu)));
-            if (abs(idu - id0) > 0.5) e = max(e, 0.95);
+            eCrease = max(eCrease, smoothstep(0.24, 0.48, 1.0 - dot(n0, nu)) * 0.78);
+            if (abs(idu - id0) > 0.5) eCrease = max(eCrease, 0.90);
           }
         }
       }
+      float e = max(eD, eCrease);
       e *= 1.0 - smoothstep(fade.x, fade.y, min(d0, dmin));
       // perto demais da câmera (folhagem pontilhada) não ganha traço
       e *= smoothstep(1.7, 2.15, min(d0, dmin));
-      float wob = hash(floor(gl_FragCoord.xy / 3.0) + floor(time * 4.0));
-      e *= 0.84 + 0.16 * wob;
+      // textura viva de nanquim no papel: silhuetas externas firmes, vincos internos levemente granulados
+      float wob = hash(floor(gl_FragCoord.xy / 2.5) + floor(time * 3.5));
+      e *= mix(0.80 + 0.20 * wob, 0.92 + 0.08 * wob, eD);
       vec3 c = mix(c0.rgb, ink, e);
       float l = dot(c, vec3(0.299, 0.587, 0.114));
       c = mix(vec3(l), c, sat);
-      c *= mix(vec3(0.97, 1.0, 0.99), vec3(1.05, 0.95, 0.86), warm);
+      c *= mix(vec3(0.975, 1.0, 0.992), vec3(1.06, 0.945, 0.845), warm);
+      // leve fibra de papel pólen nas luzes altas
+      float tooth = (hash(floor(gl_FragCoord.xy * 0.5)) - 0.5) * 0.016 + (hash(gl_FragCoord.xy + fract(time) * 61.0) - 0.5) * 0.009;
       vec2 q = vUv - 0.5; c *= 1.0 - dot(q, q) * vign;
-      c += (hash(gl_FragCoord.xy + fract(time) * 61.0) - 0.5) * 0.012;
+      c += tooth;
       gl_FragColor = vec4(c, 1.0);
       #include <colorspace_fragment>
     }`,

@@ -13,7 +13,7 @@ export const state = {
   follow: 0, hints: new Set(), frame: 0,
   // missões: quem topou parar junto, escolhas da semana, quem está fugindo, a última emoção da Duda
   support: new Set(), flags: {}, chase: null, lastEmote: null,
-  animo: 0.6, mood: '',      // ânimo da Duda (0 a 1) e o humor escolhido pelo mood.js
+  animo: 0.6, mood: '', moodLabel: 'DISPOSTA', restedT: 0, sitting: null, photoMode: false, goals: 0,
 };
 // hora do dia, de 0 (07:00) a 1 (19:00): anda quando você anda
 export function dayP() {

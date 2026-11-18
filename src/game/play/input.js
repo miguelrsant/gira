@@ -9,7 +9,7 @@ import { initAudio, setMusic, sfx } from './audio.js';
 import { rotateCam, zoomCam } from './camera.js';
 import { advanceDialog, closeDialog, selChoice } from './dialog.js';
 import { interactNow, startTalk, target } from './director.js';
-import { closePanels, togglePanel } from './hud.js';
+import { closePanels, togglePanel, togglePhotoMode } from './hud.js';
 import { jump } from './player.js';
 import { joy, keys, state } from './state.js';
 import { startGame } from './title.js';
@@ -19,7 +19,7 @@ const pinch = new Map();
 let pinchD = 0;
 export function initInput() {
   addEventListener('keydown', (e) => {
-    if (e.repeat && (e.code === 'Space' || e.code === 'KeyE' || e.code === 'Enter')) return;
+    if (e.repeat && (e.code === 'Space' || e.code === 'KeyE' || e.code === 'Enter' || e.code === 'KeyP')) return;
     keys[e.code] = true;
     if (state.mode === 'title' && (e.code === 'Enter' || e.code === 'Space')) { startGame(); e.preventDefault(); return; }
     if (state.dialog && (e.code === 'Space' || e.code === 'KeyE' || e.code === 'Enter')) { advanceDialog(true); e.preventDefault(); return; }
@@ -31,11 +31,13 @@ export function initInput() {
     }
     if (e.code === 'KeyM') { initAudio(); setMusic(!state.musicOn); }
     if (state.mode !== 'play') return;
+    if (e.code === 'KeyP' && !state.dialog) { togglePhotoMode(); e.preventDefault(); return; }
+    if (e.code === 'Escape') { if (state.photoMode) togglePhotoMode(false); else togglePanel(null); return; }
+    if (state.photoMode) { if (e.code.startsWith('Arrow')) e.preventDefault(); return; }
     if (e.code === 'KeyE' || e.code === 'Enter') interactNow();
     if (e.code === 'Space') { jump(); e.preventDefault(); }
     const ei = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6'].indexOf(e.code);
     if (ei >= 0) playerEmote(EMOTES[ei]);
-    if (e.code === 'Escape') togglePanel(null);
     if (e.code.startsWith('Arrow')) e.preventDefault();
   });
   addEventListener('keyup', (e) => { keys[e.code] = false; });

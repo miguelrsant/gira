@@ -3,18 +3,27 @@ import * as THREE from 'three';
 import { LOW, WALK } from '../core/config.js';
 import { lineMat } from '../core/materials.js';
 import { arcDist, C, clamp, lerp, orient, rand, rr, smooth, V3, Y } from '../core/math.js';
-import { scene } from '../core/renderer.js';
-import { MAT } from '../world/chunks.js';
-import { cylG, Geo, GEO, TM, torG } from '../world/geo.js';
+import { camera, scene } from '../core/renderer.js';
+import { stepCampinhoBall } from '../rules.js';
+import { MAT, overHorizon } from '../world/chunks.js';
+import { blobG, cylG, Geo, GEO, sphG, TM, torG } from '../world/geo.js';
 import { DYN, SPOTS } from '../world/places.js';
-import { pigeonGeo } from '../characters/pets.js';
+import { duckGeo, pigeonGeo } from '../characters/pets.js';
 import { actor } from './actors.js';
 import { sfx } from './audio.js';
+import { showEmote } from './bubbles.js';
+import { toast } from './hud.js';
 import { player } from './player.js';
 import { dayP, state } from './state.js';
 
-const DYNS = { hands: [], wheel: null, wheelA: 0, kite: null, pigeons: null, clockMin: -1 };
-const _dy = { m: new THREE.Matrix4(), m2: new THREE.Matrix4(), q: new THREE.Quaternion(), e: new THREE.Euler(), p: V3(), s: V3(), v: V3() };
+export const DYNS = {
+  hands: [], wheel: null, wheelA: 0, kite: null, pigeons: null,
+  ball: null, ducks: null, smoke: null, beam: null, clockMin: -1,
+};
+const _dy = {
+  m: new THREE.Matrix4(), m2: new THREE.Matrix4(), q: new THREE.Quaternion(),
+  e: new THREE.Euler(), p: V3(), s: V3(), v: V3(), v2: V3(), v3: V3(),
+};
 function meshOf(g, cast = true) {
   const m = new THREE.Mesh(g.build(), MAT.world);
   m.castShadow = cast; m.receiveShadow = true; m.matrixAutoUpdate = false;
@@ -76,6 +85,61 @@ export function initDynamics() {
     for (let i = 0; i < n; i++) { const b = { x: 0, z: 0, ry: rand() * 6.28, h: 0, mode: 'ground', t: rand() * 3, fx: 0, fz: 0, tx: 0, tz: 0, peck: 0 }; pigeonSpot(b); b.x = b.tx; b.z = b.tz; P.push(b); }
     DYNS.pigeons = { im, c, inv, P, flapT: 0 };
   }
+  // bola chutável do Campinho (gols em lx = ±4.8, laterais em lz = ±3.1)
+  if (SPOTS.campinho) {
+    const c = SPOTS.campinho, inv = c.W.clone().invert();
+    const g = new Geo(), wCol = C('#f4f4ef'), bCol = C('#373f42');
+    g.add(sphG(16, 12), TM(0, 0, 0, 0.21, 0.21, 0.21), null, {
+      id: 7,
+      cf: (px, py, pz) => {
+        const u = px / 0.21, v = py / 0.21, w = pz / 0.21;
+        const dark = Math.abs(u) > 0.78 || Math.abs(v) > 0.78 || Math.abs(w) > 0.78 || (Math.abs(u) + Math.abs(v) + Math.abs(w) > 1.52);
+        return dark ? bCol : wCol;
+      },
+    });
+    const m = meshOf(g, true);
+    DYNS.ball = {
+      m, c, inv, kickT: 0,
+      bounds: { halfW: 3.05, halfL: 4.72, goalHalfW: 1.28 },
+      b: { x: 0.4, z: 0.9, vx: 0, vz: 0, spin: 0, goals: 0 },
+    };
+  }
+  // patinhos nadando no lago do Parque Domingueiro
+  if (SPOTS.lago) {
+    const c = SPOTS.lago, n = 5;
+    const im = new THREE.InstancedMesh(duckGeo(), MAT.world, n);
+    im.castShadow = false; im.frustumCulled = false; scene.add(im);
+    const D = [];
+    for (let i = 0; i < n; i++) {
+      D.push({
+        cx: rr(-0.8, 0.8), cz: rr(-0.8, 0.8),
+        rx: rr(1.2, 2.3), rz: rr(1.1, 2.2),
+        ph: i * 1.26, sp: rr(0.28, 0.42) * (i % 2 ? 1 : -1),
+      });
+    }
+    DYNS.ducks = { im, c, D, quackT: 0 };
+  }
+  // fumaça das chaminés da Fábrica de Voltas (some na greve e no domingo)
+  if (SPOTS.fabrica) {
+    const c = SPOTS.fabrica, n = LOW ? 8 : 12;
+    const g = new Geo();
+    g.add(blobG(3, 1), null, null, { c: C('#d8dbd2'), id: 7 });
+    const im = new THREE.InstancedMesh(g.build(), MAT.world, n);
+    im.castShadow = false; im.frustumCulled = false; scene.add(im);
+    DYNS.smoke = { im, c, n, stacks: [[-3.2, 11.2, -2.2, 0.42], [-0.8, 9.7, -2.6, 0.34]] };
+  }
+  // facho giratório do farol na Ilha do Sinal Fraco
+  if (SPOTS.farol) {
+    const c = SPOTS.farol;
+    const cone = new THREE.CylinderGeometry(0.14, 1.35, 6.2, 14, 1, true);
+    cone.translate(0, -3.1, 0);
+    cone.rotateX(-Math.PI / 2 + 0.08);
+    const mat = new THREE.MeshBasicMaterial({ color: '#fff3b8', transparent: true, opacity: 0.2, depthWrite: false, side: THREE.DoubleSide });
+    const m = new THREE.Mesh(cone, mat);
+    m.matrixAutoUpdate = false; m.frustumCulled = false;
+    scene.add(m);
+    DYNS.beam = { m, c, base: c.W.clone().multiply(new THREE.Matrix4().makeTranslation(0, 7.45, 0)) };
+  }
 }
 // lugar livre na praça para um pombo pousar
 function pigeonSpot(b, awayX = 0, awayZ = 0) {
@@ -136,6 +200,107 @@ export function updateDynamics(dt, t) {
     }
   }
   updatePigeons(dt, t);
+  updateBall(dt, t);
+  updateDucks(dt, t);
+  updateSmoke(t);
+  updateBeam(t);
+}
+function updateBall(dt, t) {
+  const BL = DYNS.ball; if (!BL) return;
+  const camD = camera.position.length();
+  BL.m.visible = overHorizon(BL.c.d, 0.14, 2.5, camera.position, camD);
+  let kicker = null;
+  if (arcDist(player.d, BL.c.d) < 9.5) {
+    const lp = _dy.v.copy(player.pos).applyMatrix4(BL.inv);
+    if (Math.abs(lp.y) < 1.1) {
+      const lv = _dy.v2.copy(player.vel).transformDirection(BL.inv).multiplyScalar(player.speed);
+      const lf = _dy.v3.copy(player.fwd).transformDirection(BL.inv);
+      kicker = { x: lp.z, z: lp.x, vx: lv.z, vz: lv.x, fx: lf.z, fz: lf.x, radius: 0.48 };
+    }
+  }
+  if (!kicker) {
+    const dog = actor('caramelo');
+    if (dog && dog.vis && arcDist(dog.d, BL.c.d) < 7) {
+      const dp = _dy.v.copy(dog.ch.rig.position).applyMatrix4(BL.inv);
+      if (Math.abs(dp.y) < 0.9) {
+        const df = _dy.v3.copy(dog.fwd).transformDirection(BL.inv);
+        kicker = { x: dp.z, z: dp.x, vx: df.z * 2.5, vz: df.x * 2.5, fx: df.z, fz: df.x, radius: 0.4 };
+      }
+    }
+  }
+  const res = stepCampinhoBall(BL.b, kicker, dt, BL.bounds);
+  BL.b = res.ball;
+  if (res.event === 'kick' && t - BL.kickT > 0.16) {
+    BL.kickT = t; sfx.kick();
+  } else if (res.event === 'goal') {
+    state.goals = BL.b.goals;
+    state.animo = clamp(state.animo + 0.14, 0, 1);
+    sfx.goal(); showEmote(null, '!');
+    toast('GOL NO CAMPINHO!', state.sunday ? `Placar de domingo: ${BL.b.goals}` : `Proibido em dia útil · Gols: ${BL.b.goals}`);
+  }
+  const spd = Math.hypot(BL.b.vx, BL.b.vz);
+  const hop = Math.min(0.18, spd * 0.022) * Math.abs(Math.sin(BL.b.spin * 1.4));
+  _dy.e.set(BL.b.spin, spd > 0.05 ? Math.atan2(BL.b.vz, BL.b.vx) : 0, BL.b.spin * 0.65, 'YXZ');
+  _dy.q.setFromEuler(_dy.e);
+  _dy.m.compose(_dy.p.set(BL.b.z, 0.21 + hop, BL.b.x), _dy.q, _dy.s.set(1, 1, 1));
+  BL.m.matrix.multiplyMatrices(BL.c.W, _dy.m);
+  BL.m.matrixWorldNeedsUpdate = true;
+}
+function updateDucks(dt, t) {
+  const DK = DYNS.ducks; if (!DK) return;
+  const camD = camera.position.length();
+  const vis = overHorizon(DK.c.d, 0.14, 2, camera.position, camD);
+  DK.im.visible = vis;
+  if (!vis) return;
+  DK.D.forEach((d, i) => {
+    const a = t * d.sp + d.ph;
+    const x = d.cx + Math.cos(a) * d.rx;
+    const z = d.cz + Math.sin(a) * d.rz;
+    const dx = -Math.sin(a) * d.rx * d.sp;
+    const dz = Math.cos(a) * d.rz * d.sp;
+    const ry = Math.atan2(dx, dz);
+    _dy.e.set(Math.sin(t * 2.6 + i) * 0.05, ry, Math.cos(t * 2.1 + i) * 0.04, 'YXZ');
+    _dy.q.setFromEuler(_dy.e);
+    _dy.m.compose(_dy.p.set(x, -0.02 + Math.sin(t * 2.4 + i) * 0.022, z), _dy.q, _dy.s.set(0.95, 0.95, 0.95));
+    _dy.m2.multiplyMatrices(DK.c.W, _dy.m);
+    DK.im.setMatrixAt(i, _dy.m2);
+  });
+  DK.im.instanceMatrix.needsUpdate = true;
+  if (state.mode === 'play' && arcDist(player.d, DK.c.d) < 7.5 && t - DK.quackT > 11) {
+    DK.quackT = t; sfx.quack();
+  }
+}
+function updateSmoke(t) {
+  const SMK = DYNS.smoke; if (!SMK) return;
+  if (state.sunday || state.strike) { SMK.im.visible = false; return; }
+  const camD = camera.position.length();
+  const vis = overHorizon(SMK.c.d, 0.16, 16, camera.position, camD);
+  SMK.im.visible = vis;
+  if (!vis) return;
+  for (let i = 0; i < SMK.n; i++) {
+    const st = SMK.stacks[i % SMK.stacks.length];
+    const u = (t * 0.26 + i / SMK.n) % 1;
+    const sc = Math.max(0.01, Math.sin(u * Math.PI) * (st[3] + u * 0.58));
+    const px = st[0] + u * 1.45 + Math.sin(t * 1.3 + i) * 0.16;
+    const py = st[1] + u * 3.4;
+    const pz = st[2] + u * 0.55 + Math.cos(t * 1.1 + i) * 0.14;
+    _dy.e.set(u * 1.5, i * 1.1 + u, 0);
+    _dy.q.setFromEuler(_dy.e);
+    _dy.m.compose(_dy.p.set(px, py, pz), _dy.q, _dy.s.set(sc, sc * 0.82, sc));
+    _dy.m2.multiplyMatrices(SMK.c.W, _dy.m);
+    SMK.im.setMatrixAt(i, _dy.m2);
+  }
+  SMK.im.instanceMatrix.needsUpdate = true;
+}
+function updateBeam(t) {
+  const BM = DYNS.beam; if (!BM) return;
+  const camD = camera.position.length();
+  const vis = overHorizon(BM.c.d, 0.18, 10, camera.position, camD);
+  BM.m.visible = vis;
+  if (!vis) return;
+  _dy.m.makeRotationY(t * 0.65);
+  BM.m.matrix.multiplyMatrices(BM.base, _dy.m);
+  BM.m.matrixWorldNeedsUpdate = true;
 }
 function updatePigeons(dt, t) {
   const PG = DYNS.pigeons; if (!PG) return;

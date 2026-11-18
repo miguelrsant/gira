@@ -14,7 +14,20 @@ export const useUI = create(() => ({
 
   // HUD
   hudOn: false,
-  day: { name: 'SEGUNDA', clock: '07:00', week: 'DIA 1 DE 7 · SEMANA 1', fill: '0%', pct: '0%', animo: '60%', mood: '', low: false },
+  photoMode: false,
+  day: {
+    name: 'SEGUNDA',
+    clock: '06:00',
+    week: 'DIA 1 DE 7 · SEMANA 1',
+    fill: '0%',
+    pct: '0%',
+    animo: '60%',
+    mood: '',
+    moodLabel: 'DISPOSTA',
+    rested: false,
+    low: false,
+    districtName: 'AVENIDA DA ESTEIRA',
+  },
   stopped: false,
   stoppedText: 'VOCÊ PAROU. O DIA PAROU.',
   toast: { on: false, t: '', s: '' },
@@ -28,6 +41,10 @@ export const useUI = create(() => ({
   panel: null,
   tasks: [],          // [{ text, done }]
   explore: [],        // [{ text, done }] um por bairro
+  supportCount: 0,
+  visitedCount: 0,
+  totalDistricts: 14,
+  pagesList: [],      // [{ idx, got, note }]
   outfit: { hair: 0, top: 0, bottom: 0, shoes: 0, skin: 0 },
 
   // cartão de fala: { id, name, color, tagd, port, line, toks: [{ ch, em, k }], shown, full, choices, sel } ou null

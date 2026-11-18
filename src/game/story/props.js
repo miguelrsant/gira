@@ -1,13 +1,13 @@
 // objetos de cena que dependem do roteiro
 import { R } from '../core/config.js';
 import { arcDist } from '../core/math.js';
-import { K, placeDir, subCtx } from '../world/kit.js';
+import { drop, K, placeDir, subCtx } from '../world/kit.js';
 import { PIER } from '../world/layout.js';
 import { addBoxCollider, BUILDS, COLLIDERS, SPOTS } from '../world/places.js';
 
 export function storyProps() {
-  // caixote do coach
-  BUILDS.push(() => { const c = SPOTS.academia; K.box(c, -1.3, -0.6, 3.15, 0.9, 1.1, 0.8, '#b48d63', { id: 3, pat: 3 }); addBoxCollider(subCtx(c, -1.3, 0, 3.15), 0.9, 0.8); });
+  // caixote do coach (recuado e apoiado na calçada)
+  BUILDS.push(() => { const c = drop(SPOTS.academia, -1.3, 2.85); K.box(c, -1.3, -0.6, 2.85, 0.9, 1.1, 0.8, '#b48d63', { id: 3, pat: 3 }); addBoxCollider(subCtx(c, -1.3, 0, 2.85), 0.9, 0.8); });
   // balde e caixa de isopor do Tonho, na ponta do píer, logo atrás de onde ele pesca
   BUILDS.push(() => {
     const S = PIER.S, s = S[S.length - 3];

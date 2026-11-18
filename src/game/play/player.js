@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { setUI } from '../../store.js';
 import { LAP, R, RUN, SEA, WALK } from '../core/config.js';
-import { angDiff, arcDist, clamp, eastOf, lerp, V3 } from '../core/math.js';
+import { angDiff, arcDist, clamp, eastOf, lerp, offsetDir, V3 } from '../core/math.js';
 import { scene } from '../core/renderer.js';
 import { SPOTS } from '../world/places.js';
 import { groundAt } from '../world/terrain.js';
@@ -78,6 +78,20 @@ export function stepPlayer(dt) {
     if (joy.id !== null) { ix += clamp(joy.x, -1.4, 1.4); iy -= clamp(joy.y, -1.4, 1.4); }
   }
   let mag = Math.hypot(ix, iy);
+  if (state.sitting) {
+    if (can && (mag > 0.14 || player.jumpBuf > 0)) {
+      standUp();
+    } else {
+      player.vel.set(0, 0, 0); player.speed = 0; player.aspeed = 0;
+      st.speed = 0; st.air = 0; st.pose = 'sit'; st.seat = 0.44; st.mood = player.mood;
+      st.tired = lerp(st.tired, 0, dt * 1.5);
+      poseChar(player.ch, dt);
+      headFromBone();
+      if (audio.tick) audio.tick.gain.setTargetAtTime(0, audio.ctx.currentTime, 0.15);
+      state.idleT += dt;
+      return;
+    }
+  }
   const run = can && (keys.ShiftLeft || keys.ShiftRight || mag > 1.08);
   if (mag > 1) { ix /= mag; iy /= mag; mag = 1; }
   const cf = player.camFwd.addScaledVector(up, -player.camFwd.dot(up)).normalize();
@@ -97,7 +111,7 @@ export function stepPlayer(dt) {
     const f = player.fwd, ang = Math.atan2(_m.b.crossVectors(f, md).dot(up), f.dot(md));
     f.applyAxisAngle(up, ang * (1 - Math.exp(-dt * 10))).addScaledVector(up, -f.dot(up)).normalize();
   }
-  const ms = player.mood ? MOODS[player.mood].speed : 1;
+  const ms = (player.mood ? MOODS[player.mood].speed : 1) * (state.restedT > 0 ? 1.08 : 1);
   const target = am ? am.speed : moving ? (run ? RUN : WALK) * ms * Math.min(1, mag * 1.25) : 0;
   // arranca e freia com um pouco de peso (o corpo inclina junto, na animação)
   player.vel.lerp(_m.b.copy(md).multiplyScalar(target), 1 - Math.exp(-dt * (target > player.speed ? 6 : 8)));
@@ -177,6 +191,30 @@ export function jump(touch = false) {
   if (touch) player.touchHeld = true;
 }
 export function jumpRelease() { player.touchHeld = false; }
+export function sitOnBench(b) {
+  if (!b || state.mode !== 'play' || state.dialog) return;
+  state.sitting = b;
+  player.vel.set(0, 0, 0); player.speed = 0; player.aspeed = 0; player.vy = 0; player.air = false;
+  player.d.copy(offsetDir(b.d, b.fwd, 0.06));
+  player.fwd.copy(b.fwd).addScaledVector(player.d, -b.fwd.dot(player.d)).normalize();
+  player.feet = b.h;
+  player.ch.st.pose = 'sit'; player.ch.st.seat = 0.44;
+  placePlayer();
+  state.animo = clamp(state.animo + 0.16, 0, 1);
+  state.restedT = 30;
+  sfx.sit(); showEmote(null, '♥');
+}
+export function standUp() {
+  const b = state.sitting;
+  if (!b) return;
+  state.sitting = null;
+  player.ch.st.pose = 'stand';
+  player.d.copy(offsetDir(b.d, b.fwd, 0.62));
+  pushOut(player.d, 0.3);
+  player.feet = groundAt(player.d);
+  placePlayer();
+  sfx.step(false);
+}
 
 // ---------------- humor da Duda ----------------
 // a história decide o humor de cada dia; aqui fica o visual (rosto, postura, ritmo e velocidade do andar)

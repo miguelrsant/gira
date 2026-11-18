@@ -36,11 +36,17 @@ export function hexMix(a, b, t) {
 const LASH = '#25292b';
 function eyeOpen(g, cx, cy, s, f) {
   const w = 8 * (f.eyeW || 1), h = 10 * (f.eyeH || 1), lid = f.lid || 0;
+  // esclera suave antes da íris para dar brilho nos retratos de perto
+  g.fillStyle = 'rgba(255,253,248,0.88)';
+  g.beginPath(); g.ellipse(cx, cy + 1, w * 0.78, h * 0.66, 0, 0, Math.PI * 2); g.fill();
   g.fillStyle = f.iris || '#3a3330';
-  g.beginPath(); g.ellipse(cx, cy + 1, w * 0.6, h * 0.62, 0, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.ellipse(cx, cy + 1.1, w * 0.6, h * 0.62, 0, 0, Math.PI * 2); g.fill();
+  // meia-lua clara na base da íris
+  g.fillStyle = 'rgba(255,235,195,0.22)';
+  g.beginPath(); g.ellipse(cx, cy + 3.1, w * 0.42, h * 0.25, 0, 0, Math.PI * 2); g.fill();
   g.fillStyle = '#1b1d1f'; g.beginPath(); g.ellipse(cx, cy + 1.6, w * 0.3, h * 0.34, 0, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#ffffff'; g.beginPath(); g.arc(cx + 2.3, cy - 1.8, 1.9 * (f.eyeW || 1), 0, 7); g.fill();
-  if (f.eyeW > 1.05) { g.beginPath(); g.arc(cx - 2.2, cy + 3.4, 1.0, 0, 7); g.fill(); }
+  g.fillStyle = '#ffffff'; g.beginPath(); g.arc(cx + 2.3, cy - 1.8, 2.0 * (f.eyeW || 1), 0, 7); g.fill();
+  g.beginPath(); g.arc(cx - 2.0, cy + 3.2, 0.95, 0, 7); g.fill();
   const top = cy - h * 0.6 + lid * h * 0.75;
   if (lid) { g.fillStyle = f.skin; g.fillRect(cx - w - 3, cy - h - 6, w * 2 + 6, top - (cy - h - 6)); }
   g.strokeStyle = LASH; g.lineWidth = 2.8;
@@ -65,7 +71,12 @@ function drawFace(g, f, k) {
   g.lineCap = 'round'; g.lineJoin = 'round';
   const happy = k === 3, closed = k === 1 || f.sleepy === 2;
   const shade = hexMix(f.skin, '#5b2f22', 0.3), lipC = f.lips || hexMix(f.skin, '#6a2c2c', 0.55);
-  if (f.blush || happy) { g.fillStyle = `rgba(236,118,108,${happy ? 0.42 : 0.3})`; for (const s of [-1, 1]) { g.beginPath(); g.ellipse(X(s * 0.47), Yp(-0.3), 8.5, 4.6, 0, 0, 7); g.fill(); } }
+  // rubor leve nas bochechas para dar vida ao traço
+  {
+    const blA = f.blush || happy ? (happy ? 0.44 : 0.32) : 0.11;
+    g.fillStyle = `rgba(236,118,108,${blA})`;
+    for (const s of [-1, 1]) { g.beginPath(); g.ellipse(X(s * 0.47), Yp(-0.3), 8.8, 4.8, 0, 0, 7); g.fill(); }
+  }
   if (f.freckles) { g.fillStyle = hexMix(f.skin, '#7a4a32', 0.5); for (const s of [-1, 1]) for (const [a, b] of [[0.36, -0.22], [0.44, -0.27], [0.52, -0.22], [0.42, -0.17]]) { g.beginPath(); g.arc(X(s * a), Yp(b), 1.1, 0, 7); g.fill(); } }
   if (f.beard) {
     g.fillStyle = f.beard; g.globalAlpha = f.stubble ? 0.32 : 1;

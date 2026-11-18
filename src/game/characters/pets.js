@@ -117,3 +117,19 @@ export function pigeonGeo() {
   }
   return g.build();
 }
+
+// ---------------- patinhos do lago do Parque Domingueiro (instanciados) ----------------
+export function duckGeo() {
+  const g = new Geo(), W = null;
+  const a = (geo, M, c, id = 7) => g.add(geo, M, W, { c: C(c), id });
+  a(sphG(12, 8), TM(0, 0.07, 0, 0.13, 0.095, 0.19), '#f4f4ef', 4);
+  a(sphG(8, 6), TM(0, 0.11, -0.17, 0.06, 0.05, 0.09, 0, 0.45), '#f4f4ef', 5);
+  a(cylG(8, 0.82), TM(0, 0.11, 0.11, 0.052, 0.12, 0.052, 0, 0.18), '#f4f4ef', 4);
+  a(sphG(10, 8), TM(0, 0.23, 0.13, 0.068, 0.066, 0.074), '#5a8f73', 6);
+  a(GEO.box, TM(0, 0.215, 0.215, 0.056, 0.024, 0.075, 0, 0.08), '#de794e', 5);
+  for (const s of [1, -1]) {
+    a(sphG(8, 6), TM(s * 0.105, 0.085, -0.01, 0.035, 0.065, 0.13), '#e6e4db', 5);
+    a(sphG(6, 4), TM(s * 0.052, 0.245, 0.155, 0.013, 0.013, 0.013), '#25292b', 7);
+  }
+  return g.build();
+}
