@@ -55,10 +55,16 @@ button:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
 @keyframes popin { from { transform: scale(0) rotate(6deg); opacity: 1; } to { transform: scale(1) rotate(-1deg); opacity: 1; } }
 #tagline { margin-top: 14px; font-size: clamp(15px, 1.8vw, 18px); color: #eaf7f3; text-shadow: 0 2px 0 rgba(55,63,66,.35); opacity: 0; transition: opacity .8s; text-align: center; padding: 0 16px; }
 #tagline.in { opacity: 1; }
+#title-controls {
+  margin-top: 8px; font-family: var(--font-label); font-size: 11px; letter-spacing: .08em;
+  color: #dff3ef; text-shadow: 0 1.5px 0 rgba(55, 63, 66, .45); opacity: 0; transition: opacity .9s .15s;
+  text-align: center; padding: 0 16px;
+}
+#title-controls.in { opacity: .92; }
 
 /* ---------- HUD ---------- */
-#hud { z-index: 10; opacity: 0; transition: opacity .6s ease; }
-#hud.on { opacity: 1; }
+#hud { z-index: 10; opacity: 0; visibility: hidden; transition: opacity .6s ease, visibility 0s .6s; }
+#hud.on { opacity: 1; visibility: visible; transition: opacity .6s ease, visibility 0s; }
 #hud:not(.on) * { pointer-events: none; }
 #daycard {
   position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); left: calc(14px + env(safe-area-inset-left, 0px));
@@ -81,6 +87,7 @@ button:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
 
 .bar.animo { height: 8px; margin-top: 6px; }
 .bar.animo i { background: var(--green); transition: width .4s; }
+.bar.animo.rested i { background: #5fbfb9; }
 .bar.animo.low i { background: var(--red); }
 #respiro {
   position: absolute; left: 50%; top: calc(124px + env(safe-area-inset-top, 0px)); transform: translateX(-50%) rotate(1deg);
@@ -254,10 +261,22 @@ body.talking.portrait #bubbles { opacity: 0; }
 }
 .panel.on { display: block; animation: pop .25s cubic-bezier(.2,.9,.3,1.4); }
 @keyframes pop { from { transform: scale(.85) rotate(-3deg); opacity: 0; } }
-.panel h2 { font-family: var(--font-label); font-weight: 700; font-size: 17px; letter-spacing: .06em; margin: 0 0 12px; }
+.panel h2 { font-family: var(--font-label); font-weight: 700; font-size: 17px; letter-spacing: .06em; margin: 0 0 10px; }
 .panel h3 { font-family: var(--font-label); font-weight: 700; font-size: 12px; letter-spacing: .08em; margin: 14px 0 4px; color: var(--muted); }
 /* a altura máxima desconta o padding e a borda do painel, para ele não passar da borda de baixo */
-#menu { top: calc(14px + env(safe-area-inset-top, 0px)); max-height: calc(100vh - 80px); max-height: calc(100dvh - 80px); overflow: auto; }
+#menu { top: calc(14px + env(safe-area-inset-top, 0px)); width: min(360px, calc(100vw - 116px)); max-height: calc(100vh - 80px); max-height: calc(100dvh - 80px); overflow: auto; }
+.ptabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
+.ptab {
+  font-family: var(--font-label); font-weight: 700; font-size: 11px; letter-spacing: .05em;
+  padding: 6px 4px; background: #e6ebe6; border: 2px solid var(--ink); cursor: pointer;
+}
+.ptab.on { background: var(--yellow); box-shadow: inset 0 -3px 0 var(--yellow-dark); transform: translateY(-1px); }
+.pstats {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  font-family: var(--font-label); font-size: 11px; letter-spacing: .05em; color: #4e5a5b;
+  background: #e9eee9; border: 1.5px solid var(--ink); padding: 5px 9px; margin-bottom: 8px;
+}
+.pstats b { color: var(--ink); }
 .task { display: flex; gap: 10px; align-items: flex-start; font-size: 19px; line-height: 1.15; padding: 6px 0; border-bottom: 1.5px dashed #c5ccc6; }
 .task .box { flex: none; width: 18px; height: 18px; border: 2px solid var(--ink); margin-top: 2px; display: grid; place-items: center; font-family: var(--font-label); font-size: 13px; }
 .task.done { color: var(--muted); text-decoration: line-through; }
@@ -265,6 +284,60 @@ body.talking.portrait #bubbles { opacity: 0; }
 .keys { margin-top: 14px; font-size: 16px; line-height: 1.4; color: #4e5a5b; }
 .keys kbd { font-family: var(--font-label); font-size: 11px; border: 1.5px solid var(--ink); padding: 0 4px; background: #fff; }
 .small { font-family: var(--font-label); font-size: 11px; letter-spacing: .06em; background: var(--paper); border: 2px solid var(--ink); padding: 6px 10px; cursor: pointer; margin-top: 12px; }
+
+/* Radar esférico do planeta */
+.radar-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.radar-here { font-family: var(--font-label); font-size: 12px; letter-spacing: .06em; background: var(--ink); color: var(--paper); padding: 3px 10px; }
+.radar-svg { width: 100%; max-width: 248px; height: auto; display: block; }
+.radar-north { font-family: var(--font-label); font-size: 7.5px; fill: #4e5a5b; letter-spacing: .08em; }
+.radar-lbl { font-family: var(--font-label); font-size: 6.8px; letter-spacing: .02em; fill: var(--ink); paint-order: stroke fill; stroke: #f4f4ef; stroke-width: 2.6px; }
+.radar-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; font-family: var(--font-label); font-size: 9.5px; color: #4e5a5b; }
+.radar-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.radar-legend .dot { width: 9px; height: 9px; border: 1.5px solid var(--ink); display: inline-block; }
+.radar-legend .dot.vis { background: var(--green); border-radius: 50%; }
+.radar-legend .dot.unk { background: #d5ddd9; border-radius: 50%; }
+.radar-legend .dot.qmain { background: var(--yellow); transform: rotate(45deg); }
+.radar-legend .dot.qside { background: var(--blue); transform: rotate(45deg); }
+
+/* Folhas de domingo coletadas */
+#folhas-list { display: flex; flex-direction: column; gap: 8px; }
+.folha-card { border: 2px solid var(--ink); background: #fff; padding: 7px 10px; box-shadow: 2px 2px 0 var(--paper-shadow); }
+.folha-card.missing { background: #e9ece8; border-style: dashed; box-shadow: none; opacity: .82; }
+.folha-head { font-family: var(--font-label); font-weight: 700; font-size: 11px; color: var(--red); letter-spacing: .08em; margin-bottom: 3px; }
+.folha-card.missing .folha-head { color: var(--muted); }
+.folha-body { font-size: 17px; line-height: 1.18; }
+
+/* Modo Postal */
+body.photo #bubbles { opacity: 0; pointer-events: none; }
+#photoframe { z-index: 28; pointer-events: none; }
+#photoframe .photo-border {
+  position: absolute; inset: 14px; border: 3px solid var(--paper);
+  box-shadow: inset 0 0 0 2px var(--ink), 0 0 0 2px var(--ink);
+  pointer-events: none;
+}
+#photoframe .photo-stamp {
+  position: absolute; top: calc(26px + env(safe-area-inset-top, 0px)); right: calc(26px + env(safe-area-inset-right, 0px));
+  padding: 6px 10px; text-align: center; transform: rotate(2.5deg); pointer-events: none;
+}
+#photoframe .photo-stamp span { display: block; font-family: var(--font-label); font-size: 9px; color: var(--muted); letter-spacing: .08em; }
+#photoframe .photo-stamp b { font-family: var(--font-label); font-size: 12px; color: var(--red); }
+#photoframe .photo-caption {
+  position: absolute; left: calc(26px + env(safe-area-inset-left, 0px)); bottom: calc(26px + env(safe-area-inset-bottom, 0px));
+  padding: 8px 14px; transform: rotate(-1deg); pointer-events: none; max-width: calc(100vw - 260px);
+}
+#photoframe .pc-title { font-family: var(--font-title); font-size: clamp(15px, 2.2vw, 21px); line-height: 1.05; }
+#photoframe .pc-sub { font-family: var(--font-label); font-size: 10px; color: var(--muted); letter-spacing: .06em; margin-top: 2px; }
+#photoframe .photo-actions {
+  position: absolute; right: calc(26px + env(safe-area-inset-right, 0px)); bottom: calc(26px + env(safe-area-inset-bottom, 0px));
+  display: flex; gap: 10px; pointer-events: auto;
+}
+#photoframe .pbtn {
+  font-family: var(--font-label); font-weight: 700; font-size: 12px; letter-spacing: .06em;
+  padding: 10px 14px; cursor: pointer;
+}
+#photoframe .pbtn.main { background: var(--yellow); box-shadow: inset 0 -4px 0 var(--yellow-dark), 4px 4px 0 var(--paper-shadow); }
+#photoframe .photo-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; transition: opacity .22s ease-out; }
+#photoframe .photo-flash.on { opacity: .88; transition: none; }
 #wardrobe { bottom: calc(18px + env(safe-area-inset-bottom, 0px)); }
 .wrow { display: grid; grid-template-columns: 34px 1fr 34px; align-items: center; gap: 8px; margin: 8px 0; }
 .wrow button { width: 34px; height: 34px; background: var(--blue); border: 2px solid var(--ink); cursor: pointer; color: #fff; font-family: var(--font-label); font-weight: 700; font-size: 16px; padding: 0; }
@@ -325,5 +398,9 @@ body.touch #hint { max-width: calc(100vw - 200px); font-size: 15px; }
   #prompt.on ~ #hint { bottom: calc(158px + env(safe-area-inset-bottom, 0px)); }
   #toast { top: calc(96px + env(safe-area-inset-top, 0px)); }
   #respiro { top: auto; bottom: calc(200px + env(safe-area-inset-bottom, 0px)); font-size: 14px; }
+  #title-controls { font-size: 9.5px; }
+  #menu { width: auto; }
+  #photoframe .photo-caption { left: 18px; right: 18px; bottom: 76px; max-width: none; }
+  #photoframe .photo-actions { right: 18px; left: 18px; bottom: 20px; justify-content: flex-end; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } #start { transform: none; opacity: 1; } }

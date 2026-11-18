@@ -84,10 +84,10 @@ export function updateTitle(dt) {
   T.th = th; T.D = (R + 2.4) / Math.sin(th);
   if (camera.fov !== vf) { camera.fov = vf; camera.updateProjectionMatrix(); }
   // o planeta sobe pequeno, para no meio e então cresce, girando cada vez mais devagar
-  const u1 = clamp(t / 1.15, 0, 1), u2 = clamp((t - 0.85) / 1.25, 0, 1);
+  const u1 = clamp(t / 0.85, 0, 1), u2 = clamp((t - 0.5) / 0.95, 0, 1);
   const f = lerp(-1.55, 0.05, easeOutCubic(u1));
   const dist = lerp(T.D * 3.2, T.D, easeInOut(u2));
-  T.orbit += dt * (0.06 + 2.4 * Math.pow(1 - clamp(t / 2.4, 0, 1), 2));
+  T.orbit += dt * (0.06 + 2.4 * Math.pow(1 - clamp(t / 1.7, 0, 1), 2));
   const phi = 0.34;
   _tt.cp.set(Math.cos(T.orbit) * Math.cos(phi), Math.sin(phi), Math.sin(T.orbit) * Math.cos(phi)).multiplyScalar(dist);
   camera.position.copy(_tt.cp); camera.up.set(0, 1, 0);
@@ -115,7 +115,7 @@ export function updateTitle(dt) {
   T.grp.position.set(0, f * L * tv * 0.98, -L);
   T.grp.rotation.set(-0.12 + Math.sin(t * 0.6) * 0.02, 0.18 + Math.sin(t * 0.45) * 0.03, 0.02);
   T.tiles.forEach((m, i) => {
-    const t0 = 2.05 + i * 0.14, u = clamp((t - t0) / 0.62, 0, 1);
+    const t0 = 1.15 + i * 0.11, u = clamp((t - t0) / 0.48, 0, 1);
     m.visible = u > 0;
     if (!m.visible) return;
     if (!m.userData.popped) { m.userData.popped = true; sfx.pop(1 + i * 0.15); }
@@ -124,7 +124,7 @@ export function updateTitle(dt) {
     m.position.set(h.x * s, h.y * s + (1 - easeOutCubic(u)) * 1.2 * s, h.z * s);
     m.rotation.set(r.x + (1 - u) * 0.9 + Math.sin(t * 1.1 + i * 1.7) * 0.035, r.y + Math.sin(t * 0.9 + i) * 0.045, r.z + (1 - u) * 1.5 * sp);
   });
-  if (t > 2.85 && !T.btn) { T.btn = true; setTitle({ btn: 'in', tagline: true }); }
+  if (t > 1.85 && !T.btn) { T.btn = true; setTitle({ btn: 'in', tagline: true }); }
 }
 // clique em COMEÇAR: o quadro do título voa como uma folha, a tela branca volta e se abre no jogo
 export async function startGame() {

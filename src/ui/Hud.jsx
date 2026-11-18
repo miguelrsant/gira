@@ -1,10 +1,10 @@
 // HUD: cartão do dia, avisos e os botões das laterais
 import { useUI } from '../store.js';
 import { IS_TOUCH } from '../game/core/config.js';
-import { refreshTasks, togglePanel } from '../game/play/hud.js';
+import { refreshTasks, togglePanel, togglePhotoMode } from '../game/play/hud.js';
 import { toggleMusic } from '../game/play/audio.js';
 import { interactNow } from '../game/play/director.js';
-import { IconEmote, IconMenu, IconOutfit, IconSound } from './icons.jsx';
+import { IconCamera, IconEmote, IconMenu, IconOutfit, IconSound } from './icons.jsx';
 import { cx } from './cx.js';
 
 function DayCard() {
@@ -15,8 +15,8 @@ function DayCard() {
       <div className="week" id="week">{d.week}</div>
       <div className="bar"><i id="barfill" style={{ width: d.fill }} /></div>
       <div className="barlabel"><span>volta do dia</span><span id="pct">{d.pct}</span></div>
-      <div className={cx('bar animo', d.low && 'low')}><i style={{ width: d.animo }} /></div>
-      <div className="barlabel"><span>ânimo</span><span>{d.mood}</span></div>
+      <div className={cx('bar animo', d.low && 'low', d.rested && 'rested')}><i style={{ width: d.animo }} /></div>
+      <div className="barlabel"><span>ânimo</span><span>{d.rested ? 'revigorada' : d.mood}</span></div>
     </div>
   );
 }
@@ -65,15 +65,17 @@ function Toast() {
 
 function SideButtons() {
   const musicOn = useUI((s) => s.musicOn);
+  const act = (fn) => (e) => { e.currentTarget.blur(); fn(); };
   return (
     <>
       <div className="side top">
-        <button className="sbtn paper" id="btn-menu" aria-label="Expediente" onClick={() => { refreshTasks(); togglePanel('menu'); }}><IconMenu /></button>
+        <button type="button" tabIndex={-1} className="sbtn paper" id="btn-menu" aria-label="Expediente" onClick={act(() => { refreshTasks(); togglePanel('menu'); })}><IconMenu /></button>
+        <button type="button" tabIndex={-1} className="sbtn paper" id="btn-photo" aria-label="Modo Postal" onClick={act(() => togglePhotoMode())}><IconCamera /></button>
       </div>
       <div className="side bottom">
-        <button className="sbtn paper" id="btn-music" aria-label="Som" onClick={toggleMusic}><IconSound on={musicOn} /></button>
-        <button className="sbtn paper" id="btn-outfit" aria-label="Roupa" onClick={() => togglePanel('wardrobe')}><IconOutfit /></button>
-        <button className="sbtn paper" id="btn-emote" aria-label="Emoções" onClick={() => togglePanel('emotes')}><IconEmote /></button>
+        <button type="button" tabIndex={-1} className="sbtn paper" id="btn-music" aria-label="Som" onClick={act(toggleMusic)}><IconSound on={musicOn} /></button>
+        <button type="button" tabIndex={-1} className="sbtn paper" id="btn-outfit" aria-label="Roupa" onClick={act(() => togglePanel('wardrobe'))}><IconOutfit /></button>
+        <button type="button" tabIndex={-1} className="sbtn paper" id="btn-emote" aria-label="Emoções" onClick={act(() => togglePanel('emotes'))}><IconEmote /></button>
       </div>
     </>
   );

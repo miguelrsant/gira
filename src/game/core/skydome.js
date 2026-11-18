@@ -40,23 +40,21 @@ export const skyMat = new THREE.ShaderMaterial({
       float sunDisc = smoothstep(0.9962, 0.9974, sd);
       c = mix(c, sunCol, sunHalo * 0.28 * (1.0 - cloud * 0.65));
       c = mix(c, mix(sunCol, vec3(1.0, 0.99, 0.94), 0.6), sunDisc * (1.0 - cloud * 0.8));
-      // estrelas discretas no fim da tarde / hora extra
-      float starCell = h13(floor(L * 190.0));
-      float twinkle = 0.65 + 0.35 * sin(time * 2.4 + starCell * 40.0);
-      float stars = step(0.9945, starCell) * smoothstep(0.08, 0.5, up) * (1.0 - cloud) * dusk * twinkle;
-      c = mix(c, vec3(1.0, 0.97, 0.88), stars * 0.85);
-      c = mix(c, cB, step(0.955, n3(L * 48.0 + shift * 2.0)) * 0.55);
-      // modo título: fundo chapado com redemoinhos, ciscos e um halo em volta do planeta
+      // estrelas discretas e suaves no fim da tarde / hora extra
+      float starNoise = n3(L * 92.0);
+      float twinkle = 0.65 + 0.35 * sin(time * 2.4 + starNoise * 38.0);
+      float stars = smoothstep(0.845, 0.895, starNoise) * smoothstep(0.08, 0.5, up) * (1.0 - cloud) * dusk * twinkle;
+      c = mix(c, vec3(1.0, 0.97, 0.88), stars * 0.8);
+      // modo título: fundo chapado com redemoinhos suaves e um halo luminoso em volta do planeta
       if (mode > 0.001) {
         float ang = acos(clamp(dot(d, pDir), -1.0, 1.0));
         float rr = ang / pRad;
-        float halo = 1.0 - smoothstep(0.96, 1.32, rr);
+        float halo = 1.0 - smoothstep(0.96, 1.34, rr);
         float innerRing = smoothstep(0.98, 1.03, rr) * (1.0 - smoothstep(1.03, 1.09, rr));
-        float sw = n3(d * 5.0 + vec3(time * 0.015, 0.0, time * 0.01)) * 0.7 + n3(d * 13.0) * 0.3;
-        vec3 ci = mix(cI, cI2, step(0.64, sw) * 0.55 + step(0.7, sw) * 0.45);
+        float sw = n3(d * 4.6 + vec3(time * 0.015, 0.0, time * 0.01)) * 0.7 + n3(d * 11.0) * 0.3;
+        vec3 ci = mix(cI, cI2, smoothstep(0.60, 0.68, sw) * 0.55 + smoothstep(0.68, 0.74, sw) * 0.45);
         ci = mix(ci, cHalo, halo);
-        ci = mix(ci, vec3(0.93, 0.99, 0.96), innerRing * 0.35);
-        ci = mix(ci, vec3(0.86, 0.97, 0.94), step(0.9955, h13(floor(d * 240.0))) * 0.7);
+        ci = mix(ci, vec3(0.93, 0.99, 0.96), innerRing * 0.38);
         c = mix(c, ci, mode);
       }
       gl_FragColor = vec4(c, 0.0);

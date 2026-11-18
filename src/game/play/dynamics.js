@@ -88,12 +88,12 @@ export function initDynamics() {
   // bola chutável do Campinho (gols em lx = ±4.8, laterais em lz = ±3.1)
   if (SPOTS.campinho) {
     const c = SPOTS.campinho, inv = c.W.clone().invert();
-    const g = new Geo(), wCol = C('#f4f4ef'), bCol = C('#373f42');
-    g.add(sphG(16, 12), TM(0, 0, 0, 0.21, 0.21, 0.21), null, {
+    const g = new Geo(), wCol = C('#f8f8f3'), bCol = C('#2c3336');
+    g.add(sphG(24, 18), TM(0, 0, 0, 0.22, 0.22, 0.22), null, {
       id: 7,
       cf: (px, py, pz) => {
-        const u = px / 0.21, v = py / 0.21, w = pz / 0.21;
-        const dark = Math.abs(u) > 0.78 || Math.abs(v) > 0.78 || Math.abs(w) > 0.78 || (Math.abs(u) + Math.abs(v) + Math.abs(w) > 1.52);
+        const u = px / 0.22, v = py / 0.22, w = pz / 0.22;
+        const dark = Math.abs(u) > 0.91 || Math.abs(v) > 0.91 || Math.abs(w) > 0.91 || (Math.abs(u) + Math.abs(v) + Math.abs(w) > 1.65);
         return dark ? bCol : wCol;
       },
     });
